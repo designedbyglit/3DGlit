@@ -1,6 +1,5 @@
 <!DOCTYPE html>
 <html>
-
 <head>
 <meta charset="UTF-8">
 <title>3DGlit</title>
@@ -9,6 +8,7 @@
 body{
 margin:0;
 background:#222;
+overflow:hidden;
 }
 
 #viewer{
@@ -23,17 +23,17 @@ height:100vh;
 
 <div id="viewer"></div>
 
-<script type="module">
+<script src="https://cdn.jsdelivr.net/npm/three@0.158.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.158.0/examples/js/controls/OrbitControls.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.158.0/examples/js/loaders/GLTFLoader.js"></script>
 
-import * as THREE from "https://unpkg.com/three@0.158.0/build/three.module.js";
-import {OrbitControls} from "https://unpkg.com/three@0.158.0/examples/jsm/controls/OrbitControls.js";
-import {GLTFLoader} from "https://unpkg.com/three@0.158.0/examples/jsm/loaders/GLTFLoader.js";
+<script>
 
 const scene = new THREE.Scene();
 
 const camera = new THREE.PerspectiveCamera(
 75,
-window.innerWidth / window.innerHeight,
+window.innerWidth/window.innerHeight,
 0.1,
 1000
 );
@@ -43,24 +43,27 @@ renderer.setSize(window.innerWidth,window.innerHeight);
 
 document.getElementById("viewer").appendChild(renderer.domElement);
 
-const controls = new OrbitControls(camera,renderer.domElement);
+const controls = new THREE.OrbitControls(camera,renderer.domElement);
 
 camera.position.set(0,0,4);
 
 const light = new THREE.HemisphereLight(0xffffff,0x444444,2);
 scene.add(light);
 
-const loader = new GLTFLoader();
+const loader = new THREE.GLTFLoader();
 
 loader.load(
 "models/yes.glb",
+
 function(gltf){
 
 const model = gltf.scene;
 scene.add(model);
 
 },
+
 undefined,
+
 function(error){
 
 console.error(error);
