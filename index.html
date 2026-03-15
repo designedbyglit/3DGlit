@@ -5,23 +5,65 @@
 <title>3DGlit</title>
 
 <style>
+
 body{
 margin:0;
-background:#222;
-overflow:hidden;
+font-family:Arial;
+background:#111;
+color:white;
+}
+
+header{
+padding:20px;
+text-align:center;
+font-size:28px;
+background:black;
 }
 
 #viewer{
 width:100%;
-height:100vh;
+height:500px;
+background:#222;
 }
+
+section{
+padding:40px;
+text-align:center;
+}
+
+button{
+padding:10px 20px;
+margin:10px;
+border:none;
+background:#ff0000;
+color:white;
+cursor:pointer;
+}
+
 </style>
 
 </head>
 
 <body>
 
+<header>
+3DGlit
+</header>
+
+<section>
+
+<h2>Cache allumage</h2>
+
 <div id="viewer"></div>
+
+<br>
+
+<button onclick="changeColor('#ffffff')">Blanc</button>
+<button onclick="changeColor('#ff0000')">Rouge</button>
+<button onclick="changeColor('#0066ff')">Bleu</button>
+<button onclick="changeColor('#000000')">Noir</button>
+
+</section>
 
 <script src="https://cdn.jsdelivr.net/npm/three@0.158.0/build/three.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.158.0/examples/js/controls/OrbitControls.js"></script>
@@ -33,13 +75,13 @@ const scene = new THREE.Scene();
 
 const camera = new THREE.PerspectiveCamera(
 75,
-window.innerWidth/window.innerHeight,
+document.getElementById("viewer").clientWidth/500,
 0.1,
 1000
 );
 
 const renderer = new THREE.WebGLRenderer({antialias:true});
-renderer.setSize(window.innerWidth,window.innerHeight);
+renderer.setSize(document.getElementById("viewer").clientWidth,500);
 
 document.getElementById("viewer").appendChild(renderer.domElement);
 
@@ -50,6 +92,8 @@ camera.position.set(0,0,4);
 const light = new THREE.HemisphereLight(0xffffff,0x444444,2);
 scene.add(light);
 
+let model;
+
 const loader = new THREE.GLTFLoader();
 
 loader.load(
@@ -57,7 +101,7 @@ loader.load(
 
 function(gltf){
 
-const model = gltf.scene;
+model = gltf.scene;
 scene.add(model);
 
 },
@@ -70,6 +114,20 @@ console.error(error);
 
 }
 );
+
+function changeColor(color){
+
+model.traverse(function(child){
+
+if(child.isMesh){
+
+child.material.color.set(color);
+
+}
+
+});
+
+}
 
 function animate(){
 
