@@ -7,9 +7,14 @@
 
 <style>
 
-body{
+*{
 margin:0;
+padding:0;
+box-sizing:border-box;
 font-family:Arial;
+}
+
+body{
 background:#0a0a0a;
 color:white;
 }
@@ -20,74 +25,82 @@ header{
 display:flex;
 justify-content:space-between;
 align-items:center;
-padding:20px 40px;
+padding:20px 60px;
 background:black;
 position:sticky;
 top:0;
+z-index:10;
 }
 
 .logo{
-font-size:24px;
+font-size:26px;
 font-weight:bold;
+letter-spacing:2px;
 }
 
 nav a{
 margin-left:30px;
 text-decoration:none;
 color:white;
-font-size:16px;
+font-size:15px;
+transition:0.3s;
 }
 
 nav a:hover{
-color:red;
+color:#ff2b2b;
 }
 
 /* HERO */
 
 .hero{
-height:500px;
-background:linear-gradient(black, #111);
+height:90vh;
 display:flex;
 flex-direction:column;
 justify-content:center;
 align-items:center;
 text-align:center;
+background:linear-gradient(black,#111);
 }
 
 .hero h1{
-font-size:50px;
-margin-bottom:10px;
+font-size:60px;
+margin-bottom:20px;
 }
 
 .hero p{
 color:#aaa;
+font-size:18px;
 }
 
 .hero button{
-margin-top:20px;
-padding:15px 30px;
+margin-top:30px;
+padding:15px 40px;
 border:none;
-background:red;
+background:#ff2b2b;
 color:white;
 font-size:16px;
 cursor:pointer;
+transition:0.3s;
+}
+
+.hero button:hover{
+background:#ff0000;
 }
 
 /* PRODUCTS */
 
 .products{
-padding:60px;
+padding:80px 60px;
 display:grid;
-grid-template-columns:repeat(auto-fit,minmax(250px,1fr));
-gap:40px;
+grid-template-columns:repeat(auto-fit,minmax(300px,1fr));
+gap:50px;
 }
 
 .product{
 background:#111;
-padding:20px;
-text-align:center;
 border-radius:10px;
-transition:0.3s;
+overflow:hidden;
+transition:0.4s;
 }
 
 .product:hover{
@@ -96,16 +109,27 @@ transform:translateY(-10px);
 
 .product img{
 width:100%;
+height:250px;
+object-fit:cover;
 }
 
-.product h3{
-margin:10px 0;
+.product-info{
+padding:20px;
 }
 
-.product button{
+.product-info h3{
+margin-bottom:10px;
+}
+
+.product-info p{
+color:#aaa;
+}
+
+.product-info button{
+margin-top:15px;
 padding:10px 20px;
 border:none;
-background:red;
+background:#ff2b2b;
 color:white;
 cursor:pointer;
 }
@@ -113,10 +137,11 @@ cursor:pointer;
 /* FOOTER */
 
 footer{
-background:black;
 padding:40px;
 text-align:center;
+background:black;
 color:#777;
+margin-top:60px;
 }
 
 </style>
@@ -128,7 +153,7 @@ color:#777;
 <header>
 
 <div class="logo">
-DesignedByGlit
+DESIGNEDBYGLIT
 </div>
 
 <nav>
@@ -142,11 +167,11 @@ DesignedByGlit
 
 <section class="hero">
 
-<h1>Pièces Moto 3D</h1>
+<h1>Pièces moto personnalisables</h1>
 
-<p>Personnalise tes pièces directement en ligne</p>
+<p>Design 3D • Performance • Personnalisation</p>
 
-<button>Configurer</button>
+<button>Voir les pièces</button>
 
 </section>
 
@@ -154,37 +179,49 @@ DesignedByGlit
 
 <div class="product">
 
-<img src="https://via.placeholder.com/400">
+<img src="https://images.unsplash.com/photo-1558981285-6f0c94958bb6">
+
+<div class="product-info">
 
 <h3>Cache allumage</h3>
 
-<p>€3</p>
+<p>Compatible €3</p>
 
 <button>Configurer</button>
 
 </div>
 
+</div>
+
 <div class="product">
 
-<img src="https://via.placeholder.com/400">
+<img src="https://images.unsplash.com/photo-1542367597-8849eb950fd8">
+
+<div class="product-info">
 
 <h3>Support radiateur</h3>
 
-<p>AM6</p>
+<p>Compatible AM6</p>
 
 <button>Configurer</button>
 
 </div>
 
+</div>
+
 <div class="product">
 
-<img src="https://via.placeholder.com/400">
+<img src="https://images.unsplash.com/photo-1558980664-10ea29248c01">
+
+<div class="product-info">
 
 <h3>Pipe admission</h3>
 
-<p>AM6</p>
+<p>AM6 / €3</p>
 
 <button>Configurer</button>
+
+</div>
 
 </div>
 
