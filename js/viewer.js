@@ -4,7 +4,7 @@ const camera = new THREE.PerspectiveCamera(
 75,
 window.innerWidth / 600,
 0.1,
-10000
+100000
 )
 
 const renderer = new THREE.WebGLRenderer({ antialias: true })
@@ -17,40 +17,41 @@ const controls = new THREE.OrbitControls(camera, renderer.domElement)
 scene.add(new THREE.AmbientLight(0xffffff, 1))
 
 const light = new THREE.DirectionalLight(0xffffff, 1)
-light.position.set(100, 100, 100)
+light.position.set(200, 200, 200)
 scene.add(light)
 
 const loader = new THREE.GLTFLoader()
 
-loader.load("models/yes.glb", function (gltf) {
+loader.load("models/yes.glb", function(gltf){
 
-    const model = gltf.scene
-    scene.add(model)
+const model = gltf.scene
 
-    const box = new THREE.Box3().setFromObject(model)
-    const size = box.getSize(new THREE.Vector3())
-    const center = box.getCenter(new THREE.Vector3())
+scene.add(model)
 
-    model.position.x -= center.x
-    model.position.y -= center.y
-    model.position.z -= center.z
+/* GROS SCALE pour être sûr de voir la pièce */
 
-    const maxDim = Math.max(size.x, size.y, size.z)
+model.scale.set(50,50,50)
 
-    camera.position.set(0, maxDim, maxDim * 2)
+/* centrer */
 
-    controls.target.set(0, 0, 0)
-    controls.update()
+const box = new THREE.Box3().setFromObject(model)
+const center = box.getCenter(new THREE.Vector3())
+
+model.position.sub(center)
+
+camera.position.set(0,100,200)
+
+controls.update()
 
 })
 
-function animate() {
+function animate(){
 
-    requestAnimationFrame(animate)
+requestAnimationFrame(animate)
 
-    controls.update()
+controls.update()
 
-    renderer.render(scene, camera)
+renderer.render(scene,camera)
 
 }
 
