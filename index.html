@@ -1,53 +1,44 @@
 <!DOCTYPE html>
-<html>
-
+<html lang="fr">
 <head>
 <meta charset="UTF-8">
-<title>DesignedByGlit</title>
+<title>GLIT</title>
 
 <style>
 
-*{
-margin:0;
-padding:0;
-box-sizing:border-box;
-font-family:Arial;
-}
-
 body{
+margin:0;
+font-family:Arial;
 background:#0a0a0a;
 color:white;
 }
 
-/* HEADER */
+/* NAVBAR */
 
-header{
+nav{
+position:fixed;
+top:0;
+width:100%;
 display:flex;
 justify-content:space-between;
 align-items:center;
-padding:20px 60px;
-background:black;
-position:sticky;
-top:0;
-z-index:10;
+padding:20px 40px;
+background:rgba(0,0,0,0.8);
+backdrop-filter:blur(10px);
+z-index:100;
 }
 
 .logo{
-font-size:26px;
+font-size:22px;
 font-weight:bold;
-letter-spacing:2px;
+letter-spacing:3px;
 }
 
-nav a{
+.menu a{
 margin-left:30px;
 text-decoration:none;
 color:white;
-font-size:15px;
-transition:0.3s;
-}
-
-nav a:hover{
-color:#ff2b2b;
+font-size:14px;
 }
 
 /* HERO */
@@ -55,62 +46,54 @@ color:#ff2b2b;
 .hero{
 height:90vh;
 display:flex;
-flex-direction:column;
-justify-content:center;
 align-items:center;
+justify-content:center;
+flex-direction:column;
 text-align:center;
-background:linear-gradient(black,#111);
 }
 
 .hero h1{
 font-size:60px;
-margin-bottom:20px;
+margin:0;
 }
 
 .hero p{
-color:#aaa;
-font-size:18px;
+opacity:0.7;
 }
 
 .hero button{
-margin-top:30px;
-padding:15px 40px;
+margin-top:20px;
+padding:12px 30px;
 border:none;
-background:#ff2b2b;
-color:white;
-font-size:16px;
+background:white;
+color:black;
+font-weight:bold;
 cursor:pointer;
-transition:0.3s;
 }
 
-.hero button:hover{
-background:#ff0000;
-}
-
-/* PRODUCTS */
+/* PRODUITS */
 
 .products{
-padding:80px 60px;
+padding:80px 10%;
 display:grid;
-grid-template-columns:repeat(auto-fit,minmax(300px,1fr));
-gap:50px;
+grid-template-columns:repeat(auto-fit,minmax(250px,1fr));
+gap:40px;
 }
 
 .product{
 background:#111;
 border-radius:10px;
 overflow:hidden;
-transition:0.4s;
+transition:0.3s;
 }
 
 .product:hover{
-transform:translateY(-10px);
+transform:scale(1.05);
 }
 
 .product img{
 width:100%;
-height:250px;
-object-fit:cover;
+display:block;
 }
 
 .product-info{
@@ -118,60 +101,48 @@ padding:20px;
 }
 
 .product-info h3{
-margin-bottom:10px;
+margin:0;
 }
 
 .product-info p{
-color:#aaa;
-}
-
-.product-info button{
-margin-top:15px;
-padding:10px 20px;
-border:none;
-background:#ff2b2b;
-color:white;
-cursor:pointer;
+opacity:0.6;
 }
 
 /* FOOTER */
 
 footer{
-padding:40px;
 text-align:center;
-background:black;
-color:#777;
-margin-top:60px;
+padding:40px;
+opacity:0.5;
 }
 
 </style>
-
 </head>
 
 <body>
 
-<header>
+<nav>
 
 <div class="logo">
-DESIGNEDBYGLIT
+GLIT
 </div>
 
-<nav>
+<div class="menu">
 <a href="#">Accueil</a>
-<a href="#">Pièces</a>
+<a href="#">Produits</a>
 <a href="#">Configurateur</a>
-<a href="#">Panier</a>
-</nav>
+<a href="#">Contact</a>
+</div>
 
-</header>
+</nav>
 
 <section class="hero">
 
-<h1>Pièces moto personnalisables</h1>
+<h1>PIÈCES 3D PERFORMANCE</h1>
 
-<p>Design 3D • Performance • Personnalisation</p>
+<p>Designées par GLIT</p>
 
-<button>Voir les pièces</button>
+<button>VOIR LES PRODUITS</button>
 
 </section>
 
@@ -179,15 +150,13 @@ DESIGNEDBYGLIT
 
 <div class="product">
 
-<img src="https://images.unsplash.com/photo-1558981285-6f0c94958bb6">
+<img src="images/produit1.jpg">
 
 <div class="product-info">
 
 <h3>Cache allumage</h3>
 
-<p>Compatible €3</p>
-
-<button>Configurer</button>
+<p>€39</p>
 
 </div>
 
@@ -195,15 +164,13 @@ DESIGNEDBYGLIT
 
 <div class="product">
 
-<img src="https://images.unsplash.com/photo-1542367597-8849eb950fd8">
+<img src="images/produit2.jpg">
 
 <div class="product-info">
 
-<h3>Support radiateur</h3>
+<h3>Cache moteur</h3>
 
-<p>Compatible AM6</p>
-
-<button>Configurer</button>
+<p>€45</p>
 
 </div>
 
@@ -211,15 +178,13 @@ DESIGNEDBYGLIT
 
 <div class="product">
 
-<img src="https://images.unsplash.com/photo-1558980664-10ea29248c01">
+<img src="images/produit3.jpg">
 
 <div class="product-info">
 
-<h3>Pipe admission</h3>
+<h3>Protection carter</h3>
 
-<p>AM6 / €3</p>
-
-<button>Configurer</button>
+<p>€29</p>
 
 </div>
 
@@ -229,10 +194,9 @@ DESIGNEDBYGLIT
 
 <footer>
 
-© DesignedByGlit
+GLIT © 2026
 
 </footer>
 
 </body>
-
 </html>
