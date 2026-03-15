@@ -1,58 +1,71 @@
-const scene = new THREE.Scene()
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x111111);
 
 const camera = new THREE.PerspectiveCamera(
 75,
 window.innerWidth / 600,
 0.1,
 100000
-)
+);
 
-const renderer = new THREE.WebGLRenderer({ antialias: true })
-renderer.setSize(window.innerWidth, 600)
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(window.innerWidth, 600);
+document.getElementById("viewer").appendChild(renderer.domElement);
 
-document.getElementById("viewer").appendChild(renderer.domElement)
+const controls = new THREE.OrbitControls(camera, renderer.domElement);
 
-const controls = new THREE.OrbitControls(camera, renderer.domElement)
+camera.position.set(0, 0, 5);
 
-scene.add(new THREE.AmbientLight(0xffffff, 1))
+const light1 = new THREE.HemisphereLight(0xffffff, 0x444444, 1);
+scene.add(light1);
 
-const light = new THREE.DirectionalLight(0xffffff, 1)
-light.position.set(200, 200, 200)
-scene.add(light)
+const light2 = new THREE.DirectionalLight(0xffffff, 1);
+light2.position.set(5, 10, 7);
+scene.add(light2);
 
-const loader = new THREE.GLTFLoader()
+let model;
 
-loader.load("models/yes.glb", function(gltf){
+const loader = new THREE.GLTFLoader();
 
-const model = gltf.scene
+loader.load(
+"models/yes.glb",
 
-scene.add(model)
+function (gltf) {
 
-/* GROS SCALE pour être sûr de voir la pièce */
+model = gltf.scene;
+scene.add(model);
 
-model.scale.set(50,50,50)
+/* centrer modèle */
 
-/* centrer */
+const box = new THREE.Box3().setFromObject(model);
+const center = box.getCenter(new THREE.Vector3());
 
-const box = new THREE.Box3().setFromObject(model)
-const center = box.getCenter(new THREE.Vector3())
+model.position.sub(center);
 
-model.position.sub(center)
+/* agrandir modèle */
 
-camera.position.set(0,100,200)
+model.scale.set(20,20,20);
 
-controls.update()
+},
 
-})
+undefined,
 
-function animate(){
+function (error) {
 
-requestAnimationFrame(animate)
-
-controls.update()
-
-renderer.render(scene,camera)
+console.error("Erreur chargement modèle :", error);
 
 }
 
-animate()
+);
+
+function animate() {
+
+requestAnimationFrame(animate);
+
+controls.update();
+
+renderer.render(scene, camera);
+
+}
+
+animate();
