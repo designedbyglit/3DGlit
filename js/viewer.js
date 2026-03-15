@@ -20,13 +20,15 @@ const light = new THREE.DirectionalLight(0xffffff,1)
 light.position.set(100,100,100)
 
 scene.add(light)
-scene.add(new THREE.AmbientLight(0xffffff,0.6))
+scene.add(new THREE.AmbientLight(0xffffff,0.7))
+
+let model
 
 const loader = new THREE.GLTFLoader()
 
 loader.load("models/yes.glb",function(gltf){
 
-const model = gltf.scene
+model = gltf.scene
 
 scene.add(model)
 
@@ -36,6 +38,22 @@ const center = box.getCenter(new THREE.Vector3())
 model.position.sub(center)
 
 })
+
+function changeColor(color){
+
+model.traverse(function(child){
+
+if(child.isMesh){
+
+child.material.color.set(color)
+
+}
+
+})
+
+}
+
+window.changeColor = changeColor
 
 function animate(){
 
