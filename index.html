@@ -104,6 +104,23 @@ function(gltf){
 model = gltf.scene;
 scene.add(model);
 
+/* calculer taille du modèle */
+
+const box = new THREE.Box3().setFromObject(model);
+const size = box.getSize(new THREE.Vector3());
+const center = box.getCenter(new THREE.Vector3());
+
+/* centrer modèle */
+
+model.position.sub(center);
+
+/* placer caméra correctement */
+
+const maxDim = Math.max(size.x, size.y, size.z);
+camera.position.set(0, maxDim * 0.5, maxDim * 2);
+
+controls.update();
+
 },
 
 undefined,
