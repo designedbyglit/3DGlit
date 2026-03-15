@@ -26,7 +26,7 @@ let model
 
 const loader = new THREE.GLTFLoader()
 
-loader.load("models/yes.glb",function(gltf){
+loader.load("models/yes.glb", function(gltf){
 
 model = gltf.scene
 
