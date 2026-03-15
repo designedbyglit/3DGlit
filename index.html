@@ -2,65 +2,32 @@
 <html>
 
 <head>
-
 <meta charset="UTF-8">
-<title>DesignedByGlit</title>
+<title>3DGlit</title>
+<style>
 
-<link rel="stylesheet" href="css/style.css">
+body{
+margin:0;
+background:#111;
+}
 
+#viewer{
+width:100%;
+height:600px;
+}
+
+</style>
 </head>
 
 <body>
 
-<header>
-
-<div class="logo">DESIGNEDBYGLIT</div>
-
-<nav>
-<a href="#">CONFIGURATEUR</a>
-<a href="#">NOS PIÈCES</a>
-<a href="#">SEMI PERSO</a>
-<a href="#">FULL PERSO</a>
-<a href="#">PANIER</a>
-</nav>
-
-</header>
-
-<section class="hero">
-
-<h1>CONFIGURE TES PIÈCES</h1>
-<p>AM6 / €3</p>
-
-<a class="btn" href="#viewer">CONFIGURER</a>
-
-</section>
-
-<section>
-
 <div id="viewer"></div>
 
-<div style="text-align:center;margin-top:20px;">
-
-<button onclick="changeColor('#ffffff')">Blanc</button>
-
-<button onclick="changeColor('#ff0000')">Rouge</button>
-
-<button onclick="changeColor('#0066ff')">Bleu</button>
-
-<button onclick="changeColor('#000000')">Noir</button>
-
-</div>
-
-</section>
-
 <script src="https://cdn.jsdelivr.net/npm/three@0.158.0/build/three.min.js"></script>
-
 <script src="https://cdn.jsdelivr.net/npm/three@0.158.0/examples/js/controls/OrbitControls.js"></script>
-
 <script src="https://cdn.jsdelivr.net/npm/three@0.158.0/examples/js/loaders/GLTFLoader.js"></script>
 
 <script src="js/viewer.js"></script>
 
 </body>
-
 </html>
