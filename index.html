@@ -1641,25 +1641,30 @@ function destroyViewer() {
 
 /* selectedPartIdx : -1 = tout, sinon index dans meshList */
 let selectedPartIdx = -1;
-let meshList = [];   /* { mesh, originalColor } */
+let meshList = [];   /* { mesh } */
 
 function selectPart(idx, btn) {
   selectedPartIdx = idx;
   document.querySelectorAll('.vpart').forEach(b => b.classList.remove('on'));
   if (btn) btn.classList.add('on');
+  /* Surligne visuellement la partie sélectionnée */
+  meshList.forEach(({ mesh }, i) => {
+    const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+    mats.forEach(m => {
+      if (m.emissive) {
+        m.emissive.setHex(i === idx ? 0x222200 : 0x000000);
+      }
+    });
+  });
 }
 
 function changeColor(hex, btn) {
   document.querySelectorAll('.v-color').forEach(b => b.classList.remove('on'));
   if (btn) btn.classList.add('on');
-
   if (!activeViewer) return;
 
   if (selectedPartIdx === -1) {
-    /* Tout colorier */
-    meshList.forEach(({ mesh }) => {
-      applyColorToMesh(mesh, hex);
-    });
+    meshList.forEach(({ mesh }) => applyColorToMesh(mesh, hex));
   } else {
     const item = meshList[selectedPartIdx];
     if (item) applyColorToMesh(item.mesh, hex);
@@ -1667,19 +1672,25 @@ function changeColor(hex, btn) {
 }
 
 function applyColorToMesh(mesh, hex) {
-  const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
-  mats.forEach(m => {
-    if (m && m.color) {
-      /* Clone le mat pour ne pas affecter les autres objets partageant le même */
-      const c = m.clone();
-      c.color.setHex(hex);
-      if (Array.isArray(mesh.material)) {
-        mesh.material = mesh.material.map(om => om === m ? c : om);
-      } else {
-        mesh.material = c;
-      }
-    }
+  /* Toujours travailler sur un tableau de matériaux */
+  const isArr = Array.isArray(mesh.material);
+  const mats  = isArr ? mesh.material : [mesh.material];
+
+  const newMats = mats.map(m => {
+    /* Crée un MeshStandardMaterial tout propre à partir du matériau existant */
+    const fresh = new THREE.MeshStandardMaterial({
+      color:      hex,
+      metalness:  m.metalness  !== undefined ? m.metalness  : 0.6,
+      roughness:  m.roughness  !== undefined ? m.roughness  : 0.35,
+      emissive:   new THREE.Color(0x000000),
+      /* On supprime volontairement map, normalMap, etc.
+         pour que la couleur soit vraiment appliquée sans pollution */
+    });
+    return fresh;
   });
+
+  mesh.material = isArr ? newMats : newMats[0];
+  mesh.material.needsUpdate = true;
 }
 
 function initViewer(productId) {
@@ -1759,22 +1770,44 @@ function initViewer(productId) {
     if (!partsEl) return;
 
     meshList = [];
+
+    /* ── Clone tous les matériaux pour briser le partage ── */
     object.traverse(child => {
-      if (child.isMesh) {
-        meshList.push({ mesh: child });
+      if (!child.isMesh) return;
+
+      if (Array.isArray(child.material)) {
+        child.material = child.material.map(m => cloneSanitize(m));
+      } else {
+        child.material = cloneSanitize(child.material);
       }
+
+      meshList.push({ mesh: child });
     });
 
-    if (meshList.length <= 1) return; /* Pas besoin si une seule pièce */
+    if (meshList.length <= 1) return;
 
     meshList.forEach((item, i) => {
-      const label = item.mesh.name || `Partie ${i + 1}`;
+      const raw   = item.mesh.name || ('Partie ' + (i + 1));
+      /* Nettoie les noms techniques type "Mesh.001_Material.002" */
+      const label = raw.replace(/[_.]?\d{3}$/g, '').replace(/_/g, ' ') || ('Partie ' + (i + 1));
       const btn   = document.createElement('button');
-      btn.className    = 'vpart';
-      btn.dataset.idx  = i;
-      btn.textContent  = label;
-      btn.onclick      = () => selectPart(i, btn);
+      btn.className   = 'vpart';
+      btn.dataset.idx = i;
+      btn.textContent = label;
+      btn.onclick     = () => selectPart(i, btn);
       partsEl.appendChild(btn);
+    });
+  }
+
+  /* Crée un MeshStandardMaterial propre depuis un matériau source */
+  function cloneSanitize(src) {
+    return new THREE.MeshStandardMaterial({
+      color:      src.color     ? src.color.clone() : new THREE.Color(0x1a1a1a),
+      metalness:  src.metalness !== undefined ? src.metalness : 0.6,
+      roughness:  src.roughness !== undefined ? src.roughness : 0.35,
+      emissive:   new THREE.Color(0x000000),
+      side:       src.side      !== undefined ? src.side      : THREE.FrontSide,
+      /* Pas de map / normalMap / vertexColors → couleur pure */
     });
   }
 
