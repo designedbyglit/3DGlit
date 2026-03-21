@@ -439,27 +439,49 @@
     .viewer-loading-msg {
       position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
       font-family: var(--font-ui); font-size: .62rem; letter-spacing: .28em;
-      text-transform: uppercase; color: var(--text3); pointer-events: none;
+      text-transform: uppercase; color: var(--text3); pointer-events: none; z-index: 2;
     }
-    .viewer-colors {
-      display: flex; gap: 2px; margin-top: 2px;
+    .viewer-ui {
+      display: flex; flex-direction: column; gap: 10px;
+      background: var(--bg3); border: 1px solid var(--border);
+      border-top: none; padding: 14px 16px;
     }
+    .viewer-ui-label {
+      font-family: var(--font-ui); font-size: .58rem; font-weight: 600;
+      letter-spacing: .32em; text-transform: uppercase; color: var(--text3);
+      display: block; margin-bottom: 7px;
+    }
+    .viewer-parts-wrap, .viewer-colors-wrap { }
+    .viewer-parts {
+      display: flex; flex-wrap: wrap; gap: 5px;
+    }
+    .vpart {
+      font-family: var(--font-ui); font-size: .62rem; font-weight: 500;
+      letter-spacing: .12em; text-transform: uppercase;
+      background: var(--bg2); border: 1px solid var(--border);
+      color: var(--text2); padding: 5px 11px; cursor: pointer;
+      transition: all var(--t); white-space: nowrap;
+    }
+    .vpart:hover { border-color: var(--border2); color: var(--text); }
+    .vpart.on { border-color: var(--gold); color: var(--gold); background: rgba(200,169,81,.08); }
+    .viewer-colors { display: flex; gap: 4px; flex-wrap: wrap; }
     .v-color {
-      width: 30px; height: 30px; cursor: pointer;
-      border: 2px solid transparent; transition: border-color var(--t);
+      width: 26px; height: 26px; cursor: pointer;
+      border: 2px solid transparent; transition: border-color var(--t), transform var(--t);
       flex-shrink: 0;
     }
-    .v-color:hover, .v-color.on { border-color: var(--gold); }
-    .v-color[data-c="black"]  { background: #111; }
+    .v-color:hover  { transform: scale(1.15); }
+    .v-color.on     { border-color: var(--gold); }
+    .v-color[data-c="black"]  { background: #1a1a1a; }
     .v-color[data-c="red"]    { background: #c02020; }
-    .v-color[data-c="blue"]   { background: #1540b8; }
-    .v-color[data-c="white"]  { background: #e8e4dc; }
+    .v-color[data-c="blue"]   { background: #1a40c0; }
+    .v-color[data-c="white"]  { background: #e0dcd4; }
+    .v-color[data-c="orange"] { background: #d45c00; }
+    .v-color[data-c="green"]  { background: #1a7a2a; }
     .viewer-hint {
-      font-family: var(--font-ui); font-size: .62rem; letter-spacing: .18em;
-      text-transform: uppercase; color: var(--text3); margin-top: 10px;
-      display: flex; align-items: center; gap: 7px;
+      font-family: var(--font-ui); font-size: .58rem; letter-spacing: .14em;
+      text-transform: uppercase; color: var(--text3); margin-top: 4px;
     }
-    .viewer-hint::before { content: '⟳'; font-size: .9rem; }
 
     .pd-info { padding-top: 16px; }
     .pd-back {
@@ -1331,14 +1353,29 @@ function renderDetail(id) {
   if (!p) return render404();
 
   const viewerHTML = p.has3D ? `
-    <div class="viewer-3d" id="viewer3d"></div>
-    <div class="viewer-colors">
-      <button class="v-color on" data-c="black" title="Noir" onclick="changeColor(0x1a1a1a, this)"></button>
-      <button class="v-color" data-c="red"   title="Rouge" onclick="changeColor(0xb82020, this)"></button>
-      <button class="v-color" data-c="blue"  title="Bleu"  onclick="changeColor(0x1a40c0, this)"></button>
-      <button class="v-color" data-c="white" title="Blanc" onclick="changeColor(0xd8d4cc, this)"></button>
+    <div class="viewer-3d" id="viewer3d">
+      <div class="viewer-loading-msg" id="viewerMsg">Chargement du modèle…</div>
     </div>
-    <div class="viewer-hint">Rotation souris / Zoom molette</div>
+    <div class="viewer-ui">
+      <div class="viewer-parts-wrap">
+        <span class="viewer-ui-label">Partie</span>
+        <div class="viewer-parts" id="viewerParts">
+          <button class="vpart on" data-idx="-1" onclick="selectPart(-1, this)">Tout</button>
+        </div>
+      </div>
+      <div class="viewer-colors-wrap">
+        <span class="viewer-ui-label">Couleur</span>
+        <div class="viewer-colors">
+          <button class="v-color on" data-c="black" title="Noir"  onclick="changeColor(0x1a1a1a, this)"></button>
+          <button class="v-color"    data-c="red"   title="Rouge" onclick="changeColor(0xc02020, this)"></button>
+          <button class="v-color"    data-c="blue"  title="Bleu"  onclick="changeColor(0x1a40c0, this)"></button>
+          <button class="v-color"    data-c="white" title="Blanc" onclick="changeColor(0xe0dcd4, this)"></button>
+          <button class="v-color"    data-c="orange" title="Orange" onclick="changeColor(0xd45c00, this)"></button>
+          <button class="v-color"    data-c="green"  title="Vert"   onclick="changeColor(0x1a7a2a, this)"></button>
+        </div>
+      </div>
+    </div>
+    <div class="viewer-hint">↺ Clic gauche · Zoom molette · Clic droit = déplacer</div>
   ` : `
     <div class="pd-img">
       <img src="${imgUrl(p.id)}" alt="${p.name}" onerror="this.style.display='none'">
@@ -1602,11 +1639,47 @@ function destroyViewer() {
   }
 }
 
+/* selectedPartIdx : -1 = tout, sinon index dans meshList */
+let selectedPartIdx = -1;
+let meshList = [];   /* { mesh, originalColor } */
+
+function selectPart(idx, btn) {
+  selectedPartIdx = idx;
+  document.querySelectorAll('.vpart').forEach(b => b.classList.remove('on'));
+  if (btn) btn.classList.add('on');
+}
+
 function changeColor(hex, btn) {
-  if (!activeViewer) return;
   document.querySelectorAll('.v-color').forEach(b => b.classList.remove('on'));
   if (btn) btn.classList.add('on');
-  activeViewer.setColor(hex);
+
+  if (!activeViewer) return;
+
+  if (selectedPartIdx === -1) {
+    /* Tout colorier */
+    meshList.forEach(({ mesh }) => {
+      applyColorToMesh(mesh, hex);
+    });
+  } else {
+    const item = meshList[selectedPartIdx];
+    if (item) applyColorToMesh(item.mesh, hex);
+  }
+}
+
+function applyColorToMesh(mesh, hex) {
+  const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+  mats.forEach(m => {
+    if (m && m.color) {
+      /* Clone le mat pour ne pas affecter les autres objets partageant le même */
+      const c = m.clone();
+      c.color.setHex(hex);
+      if (Array.isArray(mesh.material)) {
+        mesh.material = mesh.material.map(om => om === m ? c : om);
+      } else {
+        mesh.material = c;
+      }
+    }
+  });
 }
 
 function initViewer(productId) {
@@ -1614,120 +1687,159 @@ function initViewer(productId) {
   const container = document.getElementById('viewer3d');
   if (!container) return;
 
-  const W = container.clientWidth || 500;
-  const H = container.clientHeight || 500;
+  selectedPartIdx = -1;
+  meshList = [];
 
-  /* Scene */
+  const W = container.clientWidth  || 500;
+  const H = container.clientHeight || W;
+
+  /* ── Scene ── */
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(0x0d0d0d);
 
-  /* Camera */
-  const camera = new THREE.PerspectiveCamera(40, W / H, .05, 200);
-  camera.position.set(0, .5, 3.8);
+  /* ── Camera ── */
+  const camera = new THREE.PerspectiveCamera(45, W / H, 0.001, 1000);
+  camera.position.set(0, 0, 5); /* sera repositionnée après chargement */
 
-  /* Renderer */
-  const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+  /* ── Renderer ── */
+  const renderer = new THREE.WebGLRenderer({ antialias: true });
   renderer.setSize(W, H);
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
   renderer.shadowMap.enabled = true;
-  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   try { renderer.outputEncoding = THREE.sRGBEncoding; } catch(e){}
-  try { renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.1; } catch(e){}
+  try { renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.2; } catch(e){}
   container.appendChild(renderer.domElement);
 
-  /* Lights */
-  scene.add(new THREE.AmbientLight(0xffffff, .35));
-  const key = new THREE.DirectionalLight(0xffffff, 1.6);
-  key.position.set(4, 8, 6); key.castShadow = true; scene.add(key);
-  const rim = new THREE.DirectionalLight(0xC8A951, .9);
-  rim.position.set(-5, 1, -4); scene.add(rim);
-  const fill = new THREE.DirectionalLight(0x8888ff, .2);
-  fill.position.set(-2, -4, 3); scene.add(fill);
+  /* ── Lights ── */
+  scene.add(new THREE.AmbientLight(0xffffff, 0.5));
+  const key = new THREE.DirectionalLight(0xffffff, 1.8);
+  key.position.set(3, 6, 5); key.castShadow = true; scene.add(key);
+  const rim = new THREE.DirectionalLight(0xC8A951, 0.8);
+  rim.position.set(-4, 2, -3); scene.add(rim);
+  const fill = new THREE.DirectionalLight(0x88aaff, 0.3);
+  fill.position.set(0, -4, 4); scene.add(fill);
 
-  /* Controls */
+  /* ── Controls ── */
   const controls = new THREE.OrbitControls(camera, renderer.domElement);
-  controls.enableDamping = true; controls.dampingFactor = .06;
-  controls.enableZoom = true; controls.minDistance = 1.5; controls.maxDistance = 10;
-  controls.autoRotate = true; controls.autoRotateSpeed = .9;
+  controls.enableDamping  = true;
+  controls.dampingFactor  = 0.07;
+  controls.enableZoom     = true;
+  controls.autoRotate     = false;   /* ← rotation manuelle uniquement */
+  controls.rotateSpeed    = 0.8;
 
-  /* Model */
-  let model = null;
-  const loader = new THREE.GLTFLoader();
+  /* ── Fit camera to bounding box ── */
+  function fitCamera(object) {
+    const box    = new THREE.Box3().setFromObject(object);
+    const center = box.getCenter(new THREE.Vector3());
+    const size   = box.getSize(new THREE.Vector3());
+    const maxDim = Math.max(size.x, size.y, size.z);
 
-  function buildPlaceholder(color) {
-    const g = new THREE.Group();
-    const mat = new THREE.MeshStandardMaterial({ color, metalness: .75, roughness: .22 });
-    const goldMat = new THREE.MeshStandardMaterial({ color: 0xC8A951, metalness: .95, roughness: .08 });
-    const darkMat = new THREE.MeshStandardMaterial({ color: 0x1a1a1a, metalness: .85, roughness: .18 });
+    /* Recentre le modèle sur l'origine */
+    object.position.sub(center);
 
-    /* Body disc */
-    const body = new THREE.Mesh(new THREE.CylinderGeometry(.85, .85, .32, 48), mat.clone());
-    body.rotation.x = Math.PI / 2; g.add(body);
+    /* Distance caméra : on veut que le plus grand côté remplisse 80% du FOV */
+    const fov    = camera.fov * (Math.PI / 180);
+    let   dist   = (maxDim / 2) / Math.tan(fov / 2);
+    dist  *= 1.35; /* un peu de marge */
 
-    /* Outer ring */
-    const ring = new THREE.Mesh(new THREE.TorusGeometry(.92, .04, 8, 48), goldMat);
-    ring.rotation.x = Math.PI / 2; g.add(ring);
+    camera.position.set(0, 0, dist);
+    camera.near = dist / 100;
+    camera.far  = dist * 100;
+    camera.updateProjectionMatrix();
 
-    /* Bolt pattern */
-    for (let i = 0; i < 6; i++) {
-      const a = (i / 6) * Math.PI * 2;
-      const bolt = new THREE.Mesh(new THREE.CylinderGeometry(.055, .055, .08, 12), goldMat);
-      bolt.position.set(Math.cos(a) * .58, Math.sin(a) * .58, .22);
-      g.add(bolt);
-    }
-
-    /* Center hub */
-    const hub = new THREE.Mesh(new THREE.CylinderGeometry(.16, .16, .5, 24), darkMat);
-    hub.rotation.x = Math.PI / 2; g.add(hub);
-
-    /* Inner ring */
-    const inner = new THREE.Mesh(new THREE.TorusGeometry(.32, .02, 8, 32), goldMat);
-    inner.rotation.x = Math.PI / 2; g.add(inner);
-
-    /* Decorative spokes */
-    for (let i = 0; i < 3; i++) {
-      const a = (i / 3) * Math.PI;
-      const spoke = new THREE.Mesh(new THREE.BoxGeometry(.04, .62, .06), darkMat);
-      spoke.position.set(0, 0, .19); spoke.rotation.z = a; g.add(spoke);
-    }
-
-    scene.add(g);
-    model = g;
+    controls.target.set(0, 0, 0);
+    controls.minDistance = dist * 0.3;
+    controls.maxDistance = dist * 4;
+    controls.update();
   }
 
-  /* Remove loading message */
-  const loading = document.querySelector('.viewer-loading-msg');
+  /* ── Construire les boutons de parties ── */
+  function buildPartButtons(object) {
+    const partsEl = document.getElementById('viewerParts');
+    if (!partsEl) return;
+
+    meshList = [];
+    object.traverse(child => {
+      if (child.isMesh) {
+        meshList.push({ mesh: child });
+      }
+    });
+
+    if (meshList.length <= 1) return; /* Pas besoin si une seule pièce */
+
+    meshList.forEach((item, i) => {
+      const label = item.mesh.name || `Partie ${i + 1}`;
+      const btn   = document.createElement('button');
+      btn.className    = 'vpart';
+      btn.dataset.idx  = i;
+      btn.textContent  = label;
+      btn.onclick      = () => selectPart(i, btn);
+      partsEl.appendChild(btn);
+    });
+  }
+
+  /* ── Loader GLB ── */
+  let model = null;
+  const loader = new THREE.GLTFLoader();
+  const msgEl  = document.getElementById('viewerMsg');
 
   loader.load(
-    `./models/${productId}.glb`,
+    BASE_PATH + 'models/' + productId + '.glb',
     (gltf) => {
       model = gltf.scene;
-      const box = new THREE.Box3().setFromObject(model);
-      const c = box.getCenter(new THREE.Vector3());
-      const s = box.getSize(new THREE.Vector3());
-      model.position.sub(c);
-      model.scale.setScalar(2.2 / Math.max(s.x, s.y, s.z));
+      fitCamera(model);
+      buildPartButtons(model);
       scene.add(model);
-      if (loading) loading.remove();
+      if (msgEl) msgEl.remove();
     },
-    undefined,
-    () => { buildPlaceholder(0x1a1a1a); if (loading) loading.remove(); }
+    (xhr) => {
+      if (msgEl && xhr.total) {
+        const pct = Math.round(xhr.loaded / xhr.total * 100);
+        msgEl.textContent = pct + '%';
+      }
+    },
+    (err) => {
+      console.warn('GLB non trouvé, placeholder affiché');
+      buildFallback();
+      if (msgEl) msgEl.remove();
+    }
   );
 
-  /* Fallback timer */
-  setTimeout(() => {
-    if (!model) { buildPlaceholder(0x1a1a1a); if (loading && loading.parentNode) loading.remove(); }
-  }, 1800);
+  /* Fallback si pas de GLB */
+  function buildFallback() {
+    const g   = new THREE.Group();
+    const mat = new THREE.MeshStandardMaterial({ color: 0x1a1a1a, metalness: .8, roughness: .2 });
+    const gld = new THREE.MeshStandardMaterial({ color: 0xC8A951, metalness: .95, roughness: .08 });
 
-  /* Resize */
+    const body  = new THREE.Mesh(new THREE.CylinderGeometry(.85, .85, .28, 48), mat);
+    body.rotation.x = Math.PI / 2; g.add(body);
+    const ring  = new THREE.Mesh(new THREE.TorusGeometry(.92, .04, 8, 48), gld);
+    ring.rotation.x = Math.PI / 2; g.add(ring);
+    for (let i = 0; i < 6; i++) {
+      const a    = (i / 6) * Math.PI * 2;
+      const bolt = new THREE.Mesh(new THREE.CylinderGeometry(.05, .05, .06, 12), gld);
+      bolt.position.set(Math.cos(a) * .58, Math.sin(a) * .58, .18);
+      g.add(bolt);
+    }
+    scene.add(g);
+    model = g;
+    fitCamera(g);
+    meshList = [{ mesh: body }];
+  }
+
+  setTimeout(() => { if (!model) { buildFallback(); if (msgEl && msgEl.parentNode) msgEl.remove(); } }, 3000);
+
+  /* ── Resize ── */
   function onResize() {
-    const w = container.clientWidth, h = container.clientHeight || container.clientWidth;
-    camera.aspect = w / h; camera.updateProjectionMatrix();
+    const w = container.clientWidth;
+    const h = container.clientHeight || w;
+    camera.aspect = w / h;
+    camera.updateProjectionMatrix();
     renderer.setSize(w, h);
   }
   window.addEventListener('resize', onResize);
 
-  /* Animate */
+  /* ── Loop ── */
   let animId;
   function animate() {
     animId = requestAnimationFrame(animate);
@@ -1736,23 +1848,12 @@ function initViewer(productId) {
   }
   animate();
 
-  /* Color change */
-  function setColor(hex) {
-    if (!model) return;
-    model.traverse(ch => {
-      if (ch.isMesh && ch.material) {
-        const mats = Array.isArray(ch.material) ? ch.material : [ch.material];
-        mats.forEach(m => { if (m.color && m !== undefined) m.color.setHex(hex); });
-      }
-    });
-  }
-
-  activeViewer = {
-    animId, renderer, controls, scene, setColor,
+  activeViewer = { animId, renderer, controls, scene,
     destroy() {
       cancelAnimationFrame(animId);
       window.removeEventListener('resize', onResize);
-      controls.dispose(); renderer.dispose();
+      controls.dispose();
+      renderer.dispose();
     }
   };
 }
