@@ -295,11 +295,15 @@
     .pcard.vis { opacity: 1; transform: translateY(0); }
     .pcard:hover { border-color: var(--border2); }
     .pcard-img {
-      position: relative; aspect-ratio: 4/3; overflow: hidden;
-      background: var(--bg3); width: 100%;
+      position: relative;
+      width: 100%;
+      height: 0;
+      padding-bottom: 75%; /* ratio 4:3 */
+      overflow: hidden;
+      background: var(--bg3);
     }
     .pcard-img img {
-      position: absolute; inset: 0;
+      position: absolute; top: 0; left: 0;
       width: 100%; height: 100%; object-fit: cover; display: block;
       transition: transform .65s var(--ease);
     }
@@ -417,10 +421,10 @@
     }
     .pd-viewer-wrap { position: sticky; top: 88px; }
     .pd-img {
-      aspect-ratio: 1; background: var(--bg2); border: 1px solid var(--border);
-      overflow: hidden; position: relative; width: 100%;
+      position: relative; width: 100%; height: 0; padding-bottom: 100%;
+      background: var(--bg2); border: 1px solid var(--border); overflow: hidden;
     }
-    .pd-img img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
+    .pd-img img { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
     .pd-img-fallback {
       position: absolute; inset: 0; display: flex; align-items: center;
       justify-content: center; flex-direction: column; gap: 12px;
@@ -428,11 +432,10 @@
     }
     .pd-img-fallback span { font-size: 4rem; opacity: .06; color: var(--gold); }
     .viewer-3d {
-      width: 100%; aspect-ratio: 1;
-      background: var(--bg2); border: 1px solid var(--border);
-      position: relative; overflow: hidden;
+      position: relative; width: 100%; height: 0; padding-bottom: 100%;
+      background: var(--bg2); border: 1px solid var(--border); overflow: hidden;
     }
-    .viewer-3d canvas { display: block !important; }
+    .viewer-3d canvas { position: absolute !important; top: 0; left: 0; width: 100% !important; height: 100% !important; display: block !important; }
     .viewer-loading-msg {
       position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
       font-family: var(--font-ui); font-size: .62rem; letter-spacing: .28em;
@@ -642,10 +645,10 @@
       background: var(--bg2); border-bottom: 1px solid var(--border);
     }
     .perso-intro-img {
-      aspect-ratio: 4/3; background: var(--bg3); border: 1px solid var(--border);
-      overflow: hidden; position: relative;
+      position: relative; width: 100%; height: 0; padding-bottom: 75%;
+      background: var(--bg3); border: 1px solid var(--border); overflow: hidden;
     }
-    .perso-intro-img img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+    .perso-intro-img img { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; }
     .perso-steps-sec { padding: 72px 80px; }
     .perso-step {
       display: grid; grid-template-columns: 68px 1fr; gap: 28px;
@@ -924,7 +927,7 @@ const PRODUCTS = [
     id: 'semi-perso',
     name: 'Semi Perso',
     cat: 'Personnalisation',
-    price: ???,
+    price: '???',
     has3D: true,
     desc: 'Kit de personnalisation semi-complet pour votre moto. Comprend cache allumage, cache pignon et bouchons de cadre. Réalisé en impression 3D haute résistance, disponible dans les coloris de votre choix.',
     specs: [
@@ -938,7 +941,7 @@ const PRODUCTS = [
     id: 'full-perso',
     name: 'Full Perso',
     cat: 'Personnalisation',
-    price: ???,
+    price: '???',
     has3D: true,
     desc: 'Pack personnalisation complète. Tous les éléments habillés aux couleurs de votre moto. Chaque pièce est conçue sur mesure selon votre modèle et vos désirs. Rendu premium garanti.',
     specs: [
@@ -1170,15 +1173,15 @@ window.addEventListener('scroll', () => {
    ROUTER
 ═══════════════════════════════════════════════════ */
 function navigate(path) {
-  history.pushState({}, '', path);
-  renderPage(path);
+  location.hash = path;
   window.scrollTo({ top: 0, behavior: 'smooth' });
   mobOpen = false;
   document.getElementById('mobNav').classList.remove('open');
 }
 
-window.addEventListener('popstate', () => {
-  renderPage(location.pathname);
+window.addEventListener('hashchange', () => {
+  const path = location.hash.slice(1) || '/';
+  renderPage(path);
   window.scrollTo({ top: 0 });
 });
 
@@ -1204,7 +1207,7 @@ function renderPage(path) {
     else if (path === '/personnalisation') { page.innerHTML = renderPerso(); footer.style.display = ''; }
     else if (path === '/contact') { page.innerHTML = renderContact(); footer.style.display = ''; }
     else if (path === '/panier') { page.innerHTML = renderPanierPage(); footer.style.display = ''; }
-    else { page.innerHTML = render404(); footer.style.display = ''; }
+    else { page.innerHTML = renderHome(); footer.style.display = ''; }
 
     page.classList.remove('fade');
     initReveal();
@@ -1313,7 +1316,7 @@ function productCard(p) {
         <div class="pcard-cat">${p.cat}</div>
       </div>
       <div class="pcard-foot">
-        <span class="pcard-price">${p.price} €</span>
+        <span class="pcard-price">${p.price === '???' ? '??? €' : p.price + ' €'}</span>
         <button class="pcard-voir">Voir →</button>
       </div>
     </div>
@@ -1359,7 +1362,7 @@ function renderDetail(id) {
         <span class="pd-tag">${p.cat}</span>
         <h1 class="pd-name">${p.name}</h1>
         <div class="pd-price-block">
-          <span class="pd-price">${p.price} €</span>
+          <span class="pd-price">${p.price === '???' ? 'Sur devis' : p.price + ' €'}</span>
           <span class="pd-price-note">TTC · Livraison incluse</span>
         </div>
         <div class="pd-div"></div>
@@ -1761,7 +1764,8 @@ document.addEventListener('DOMContentLoaded', () => {
   setTimeout(() => {
     document.getElementById('loader').classList.add('out');
     updateCartUI();
-    renderPage(location.pathname || '/');
+    const path = location.hash.slice(1) || '/';
+    renderPage(path);
   }, 1600);
 });
 </script>
