@@ -296,9 +296,10 @@
     .pcard:hover { border-color: var(--border2); }
     .pcard-img {
       position: relative; aspect-ratio: 4/3; overflow: hidden;
-      background: var(--bg3);
+      background: var(--bg3); width: 100%;
     }
     .pcard-img img {
+      position: absolute; inset: 0;
       width: 100%; height: 100%; object-fit: cover; display: block;
       transition: transform .65s var(--ease);
     }
@@ -417,9 +418,9 @@
     .pd-viewer-wrap { position: sticky; top: 88px; }
     .pd-img {
       aspect-ratio: 1; background: var(--bg2); border: 1px solid var(--border);
-      overflow: hidden; position: relative;
+      overflow: hidden; position: relative; width: 100%;
     }
-    .pd-img img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .pd-img img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
     .pd-img-fallback {
       position: absolute; inset: 0; display: flex; align-items: center;
       justify-content: center; flex-direction: column; gap: 12px;
@@ -555,11 +556,8 @@
     .cart-item {
       display: flex; gap: 16px; padding: 18px 0; border-bottom: 1px solid var(--border);
     }
-    .ci-img {
-      width: 68px; height: 68px; background: var(--bg3);
-      overflow: hidden; flex-shrink: 0;
-    }
-    .ci-img img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .ci-img { width: 68px; height: 68px; background: var(--bg3); overflow: hidden; flex-shrink: 0; position: relative; }
+    .ci-img img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
     .ci-info { flex: 1; }
     .ci-name { font-family: var(--font-h); font-size: 1rem; font-weight: 600; color: var(--text); margin-bottom: 4px; }
     .ci-price { font-family: var(--font-ui); font-size: .72rem; color: var(--gold); letter-spacing: .1em; }
@@ -595,8 +593,8 @@
     .panier-item {
       display: flex; gap: 22px; padding: 22px 0; border-bottom: 1px solid var(--border);
     }
-    .pi-img { width: 96px; height: 96px; background: var(--bg2); overflow: hidden; flex-shrink: 0; }
-    .pi-img img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .pi-img { width: 96px; height: 96px; background: var(--bg2); overflow: hidden; flex-shrink: 0; position: relative; }
+    .pi-img img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
     .pi-details { flex: 1; }
     .pi-name { font-family: var(--font-h); font-size: 1.4rem; font-weight: 600; color: var(--text); margin-bottom: 4px; }
     .pi-price { font-family: var(--font-ui); color: var(--gold); font-size: .8rem; letter-spacing: .1em; }
@@ -645,9 +643,9 @@
     }
     .perso-intro-img {
       aspect-ratio: 4/3; background: var(--bg3); border: 1px solid var(--border);
-      overflow: hidden;
+      overflow: hidden; position: relative;
     }
-    .perso-intro-img img { width: 100%; height: 100%; object-fit: cover; }
+    .perso-intro-img img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
     .perso-steps-sec { padding: 72px 80px; }
     .perso-step {
       display: grid; grid-template-columns: 68px 1fr; gap: 28px;
@@ -1301,6 +1299,7 @@ function productCard(p) {
   <div class="pcard" onclick="navigate('/produit/${p.id}')">
     <div class="pcard-img">
       <img src="${imgUrl(p.id)}" alt="${p.name}" onerror="this.style.display='none'">
+      <div class="pcard-fallback">
         <span class="pcard-fallback-icon">⬡</span>
         <span class="pcard-fallback-name">${p.name}</span>
       </div>
