@@ -442,42 +442,42 @@
       text-transform: uppercase; color: var(--text3); pointer-events: none; z-index: 2;
     }
     .viewer-ui {
-      display: flex; flex-direction: column; gap: 10px;
+      display: flex; flex-direction: column; gap: 8px;
       background: var(--bg3); border: 1px solid var(--border);
-      border-top: none; padding: 14px 16px;
+      border-top: none; padding: 10px 12px;
     }
     .viewer-ui-label {
-      font-family: var(--font-ui); font-size: .58rem; font-weight: 600;
-      letter-spacing: .32em; text-transform: uppercase; color: var(--text3);
-      display: block; margin-bottom: 7px;
+      font-family: var(--font-ui); font-size: .55rem; font-weight: 600;
+      letter-spacing: .28em; text-transform: uppercase; color: var(--text3);
+      display: block; margin-bottom: 5px;
     }
     .viewer-parts-wrap, .viewer-colors-wrap { }
     .viewer-parts {
       display: flex; flex-wrap: wrap; gap: 5px;
     }
     .vpart {
-      font-family: var(--font-ui); font-size: .62rem; font-weight: 500;
-      letter-spacing: .12em; text-transform: uppercase;
+      font-family: var(--font-ui); font-size: .58rem; font-weight: 500;
+      letter-spacing: .1em; text-transform: uppercase;
       background: var(--bg2); border: 1px solid var(--border);
-      color: var(--text2); padding: 5px 11px; cursor: pointer;
+      color: var(--text2); padding: 4px 9px; cursor: pointer;
       transition: all var(--t); white-space: nowrap;
     }
     .vpart:hover { border-color: var(--border2); color: var(--text); }
     .vpart.on { border-color: var(--gold); color: var(--gold); background: rgba(200,169,81,.08); }
     .viewer-colors { display: flex; gap: 4px; flex-wrap: wrap; }
     .v-color {
-      width: 26px; height: 26px; cursor: pointer;
+      width: 22px; height: 22px; cursor: pointer;
       border: 2px solid transparent; transition: border-color var(--t), transform var(--t);
       flex-shrink: 0;
     }
-    .v-color:hover  { transform: scale(1.15); }
+    .v-color:hover  { transform: scale(1.18); }
     .v-color.on     { border-color: var(--gold); }
-    .v-color[data-c="black"]  { background: #1a1a1a; }
-    .v-color[data-c="red"]    { background: #c02020; }
-    .v-color[data-c="blue"]   { background: #1a40c0; }
-    .v-color[data-c="white"]  { background: #e0dcd4; }
-    .v-color[data-c="orange"] { background: #d45c00; }
-    .v-color[data-c="green"]  { background: #1a7a2a; }
+    .v-color[data-c="black"]  { background: #080808; }
+    .v-color[data-c="red"]    { background: #cc0000; }
+    .v-color[data-c="blue"]   { background: #0033cc; }
+    .v-color[data-c="white"]  { background: #f0f0f0; border: 1px solid #333; }
+    .v-color[data-c="orange"] { background: #ff4400; }
+    .v-color[data-c="green"]  { background: #006600; }
     .viewer-hint {
       font-family: var(--font-ui); font-size: .58rem; letter-spacing: .14em;
       text-transform: uppercase; color: var(--text3); margin-top: 4px;
@@ -1367,12 +1367,12 @@ function renderDetail(id) {
       <div class="viewer-colors-wrap">
         <span class="viewer-ui-label">Couleur</span>
         <div class="viewer-colors">
-          <button class="v-color on" data-c="black" title="Noir"  onclick="changeColor(0x1a1a1a, this)"></button>
-          <button class="v-color"    data-c="red"   title="Rouge" onclick="changeColor(0xc02020, this)"></button>
-          <button class="v-color"    data-c="blue"  title="Bleu"  onclick="changeColor(0x1a40c0, this)"></button>
-          <button class="v-color"    data-c="white" title="Blanc" onclick="changeColor(0xe0dcd4, this)"></button>
-          <button class="v-color"    data-c="orange" title="Orange" onclick="changeColor(0xd45c00, this)"></button>
-          <button class="v-color"    data-c="green"  title="Vert"   onclick="changeColor(0x1a7a2a, this)"></button>
+          <button class="v-color on" data-c="black" title="Noir"  onclick="changeColor(0x080808, this)"></button>
+          <button class="v-color"    data-c="red"   title="Rouge" onclick="changeColor(0xcc0000, this)"></button>
+          <button class="v-color"    data-c="blue"  title="Bleu"  onclick="changeColor(0x0033cc, this)"></button>
+          <button class="v-color"    data-c="white" title="Blanc" onclick="changeColor(0xf0f0f0, this)"></button>
+          <button class="v-color"    data-c="orange" title="Orange" onclick="changeColor(0xff4400, this)"></button>
+          <button class="v-color"    data-c="green"  title="Vert"   onclick="changeColor(0x006600, this)"></button>
         </div>
       </div>
     </div>
@@ -1673,9 +1673,9 @@ function makeMat(src) {
   m.flatShading  = false;
   m.vertexColors = false;
   /* Effet brillant — couleurs vives et reflets prononcés */
-  m.metalness    = 0.75;
-  m.roughness    = 0.12;
-  m.envMapIntensity = 1.5;
+  m.metalness    = 0.6;
+  m.roughness    = 0.08;
+  m.envMapIntensity = 2.0;
   m.needsUpdate  = true;
   return m;
 }
