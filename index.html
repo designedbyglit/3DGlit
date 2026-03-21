@@ -1639,22 +1639,21 @@ function destroyViewer() {
   }
 }
 
-/* selectedPartIdx : -1 = tout, sinon index dans meshList */
+/* ═══════════════════════════════════════════════════
+   THREE.JS VIEWER — COLOR SYSTEM V3
+   Principe : chaque groupe de faces devient un mesh
+   indépendant avec UN seul matériau → couleur 100% propre
+═══════════════════════════════════════════════════ */
 let selectedPartIdx = -1;
-let meshList = [];   /* { mesh } */
+let meshList = [];
 
 function selectPart(idx, btn) {
   selectedPartIdx = idx;
   document.querySelectorAll('.vpart').forEach(b => b.classList.remove('on'));
   if (btn) btn.classList.add('on');
-  /* Surligne visuellement la partie sélectionnée */
+  /* Halo doré sur la partie active */
   meshList.forEach(({ mesh }, i) => {
-    const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
-    mats.forEach(m => {
-      if (m.emissive) {
-        m.emissive.setHex(i === idx ? 0x222200 : 0x000000);
-      }
-    });
+    mesh.material.emissive.setHex(i === idx ? 0x332800 : 0x000000);
   });
 }
 
@@ -1662,35 +1661,97 @@ function changeColor(hex, btn) {
   document.querySelectorAll('.v-color').forEach(b => b.classList.remove('on'));
   if (btn) btn.classList.add('on');
   if (!activeViewer) return;
-
-  if (selectedPartIdx === -1) {
-    meshList.forEach(({ mesh }) => applyColorToMesh(mesh, hex));
-  } else {
-    const item = meshList[selectedPartIdx];
-    if (item) applyColorToMesh(item.mesh, hex);
-  }
+  const targets = selectedPartIdx === -1 ? meshList : [meshList[selectedPartIdx]];
+  targets.forEach(({ mesh }) => {
+    if (!mesh) return;
+    mesh.material.color.setHex(hex);
+    mesh.material.map         = null;
+    mesh.material.vertexColors = false;
+    mesh.material.needsUpdate  = true;
+  });
 }
 
-function applyColorToMesh(mesh, hex) {
-  /* Toujours travailler sur un tableau de matériaux */
-  const isArr = Array.isArray(mesh.material);
-  const mats  = isArr ? mesh.material : [mesh.material];
+/* Explose un mesh multi-matériaux en sous-meshes individuels */
+function explodeMesh(mesh, parent) {
+  const geo  = mesh.geometry;
+  const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
 
-  const newMats = mats.map(m => {
-    /* Crée un MeshStandardMaterial tout propre à partir du matériau existant */
-    const fresh = new THREE.MeshStandardMaterial({
-      color:      hex,
-      metalness:  m.metalness  !== undefined ? m.metalness  : 0.6,
-      roughness:  m.roughness  !== undefined ? m.roughness  : 0.35,
-      emissive:   new THREE.Color(0x000000),
-      /* On supprime volontairement map, normalMap, etc.
-         pour que la couleur soit vraiment appliquée sans pollution */
-    });
-    return fresh;
+  if (!geo.groups || geo.groups.length <= 1) {
+    /* Déjà un seul matériau → sanitize direct */
+    mesh.material = sanitizeMat(mats[0] || mats);
+    return [mesh];
+  }
+
+  const results = [];
+  geo.groups.forEach((grp, gi) => {
+    if (grp.count === 0) return;
+
+    /* Sous-géométrie avec seulement les faces de ce groupe */
+    const subGeo = geo.clone();
+    subGeo.setDrawRange(grp.start, grp.count);
+    /* Recréer les groups pour éviter les artifacts */
+    subGeo.groups = [{ start: grp.start, count: grp.count, materialIndex: 0 }];
+
+    const srcMat = mats[grp.materialIndex] || mats[0];
+    const subMat = sanitizeMat(srcMat);
+
+    const subMesh = new THREE.Mesh(subGeo, subMat);
+    subMesh.name            = mesh.name ? mesh.name + '_' + gi : 'Partie ' + (gi + 1);
+    subMesh.position.copy(mesh.position);
+    subMesh.rotation.copy(mesh.rotation);
+    subMesh.scale.copy(mesh.scale);
+    subMesh.castShadow    = true;
+    subMesh.receiveShadow = true;
+    parent.add(subMesh);
+    results.push(subMesh);
   });
 
-  mesh.material = isArr ? newMats : newMats[0];
-  mesh.material.needsUpdate = true;
+  /* Supprime le mesh original remplacé */
+  if (results.length > 0) parent.remove(mesh);
+  return results;
+}
+
+function sanitizeMat(src) {
+  return new THREE.MeshStandardMaterial({
+    color:         src && src.color ? src.color.clone() : new THREE.Color(0x1a1a1a),
+    metalness:     src && src.metalness != null ? src.metalness : 0.55,
+    roughness:     src && src.roughness != null ? src.roughness : 0.40,
+    emissive:      new THREE.Color(0x000000),
+    side:          THREE.DoubleSide,
+    map:           null,
+    normalMap:     null,
+    vertexColors:  false,
+  });
+}
+
+function buildParts(root) {
+  meshList = [];
+  const partsEl = document.getElementById('viewerParts');
+
+  /* Collecte tous les meshes originaux (snapshot avant explosion) */
+  const origMeshes = [];
+  root.traverse(c => { if (c.isMesh) origMeshes.push(c); });
+
+  origMeshes.forEach(mesh => {
+    const subs = explodeMesh(mesh, mesh.parent || root);
+    subs.forEach(sub => meshList.push({ mesh: sub }));
+  });
+
+  if (!partsEl) return;
+  /* Garde uniquement le bouton "Tout" puis ajoute les parties */
+  partsEl.innerHTML = '<button class="vpart on" data-idx="-1" onclick="selectPart(-1,this)">Tout</button>';
+
+  if (meshList.length > 1) {
+    meshList.forEach((item, i) => {
+      const raw   = item.mesh.name || ('Partie ' + (i + 1));
+      const label = raw.replace(/_\d+$/, '').replace(/_/g, ' ').trim() || ('P' + (i + 1));
+      const btn   = document.createElement('button');
+      btn.className   = 'vpart';
+      btn.textContent = label;
+      btn.onclick     = () => selectPart(i, btn);
+      partsEl.appendChild(btn);
+    });
+  }
 }
 
 function initViewer(productId) {
