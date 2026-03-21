@@ -1640,19 +1640,22 @@ function destroyViewer() {
 }
 
 /* ═══════════════════════════════════════════════════
-   THREE.JS VIEWER — COLOR SYSTEM V4
-   Seule vraie solution : reconstruire une BufferGeometry
-   complète par groupe de faces (copie réelle des vertices)
+   VIEWER — SYSTÈME COULEUR DÉFINITIF
+   Principe : on ne touche JAMAIS à la géométrie.
+   Chaque slot de matériau = une entrée dans partList.
+   changeColor agit sur le bon slot → rendu propre garanti.
 ═══════════════════════════════════════════════════ */
 let selectedPartIdx = -1;
-let meshList = [];
+let partList  = [];   /* [{ label, mesh, matIdx }]  matIdx=-1 si mat unique */
+let meshList  = [];   /* pour compatibilité */
 
 function selectPart(idx, btn) {
   selectedPartIdx = idx;
   document.querySelectorAll('.vpart').forEach(b => b.classList.remove('on'));
   if (btn) btn.classList.add('on');
-  meshList.forEach(({ mesh }, i) => {
-    mesh.material.emissive.setHex(i === idx ? 0x332800 : 0x000000);
+  partList.forEach(({ mesh, matIdx }, i) => {
+    const m = matIdx === -1 ? mesh.material : mesh.material[matIdx];
+    if (m && m.emissive) m.emissive.setHex(i === idx ? 0x332800 : 0x000000);
   });
 }
 
@@ -1660,119 +1663,68 @@ function changeColor(hex, btn) {
   document.querySelectorAll('.v-color').forEach(b => b.classList.remove('on'));
   if (btn) btn.classList.add('on');
   if (!activeViewer) return;
-  const targets = selectedPartIdx === -1 ? meshList : [meshList[selectedPartIdx]];
-  targets.forEach(({ mesh }) => {
-    mesh.material.color.setHex(hex);
-    mesh.material.needsUpdate = true;
+  const targets = selectedPartIdx === -1 ? partList : [partList[selectedPartIdx]];
+  targets.forEach(({ mesh, matIdx }) => {
+    const m = matIdx === -1 ? mesh.material : mesh.material[matIdx];
+    if (m) { m.color.setHex(hex); m.needsUpdate = true; }
   });
 }
 
-/* ── Crée un matériau propre (sans map ni vertexColors) ── */
 function makeMat(src) {
   return new THREE.MeshStandardMaterial({
     color:        src && src.color ? src.color.clone() : new THREE.Color(0x888888),
-    metalness:    src && src.metalness != null ? src.metalness : 0.5,
-    roughness:    src && src.roughness != null ? src.roughness : 0.4,
+    metalness:    src ? (src.metalness ?? 0.5) : 0.5,
+    roughness:    src ? (src.roughness ?? 0.4) : 0.4,
     emissive:     new THREE.Color(0x000000),
     side:         THREE.DoubleSide,
-    map:          null, normalMap: null, aoMap: null,
+    map: null, normalMap: null, aoMap: null,
     metalnessMap: null, roughnessMap: null,
-    vertexColors: false,
+    emissiveMap: null, vertexColors: false,
   });
 }
 
-/* ── Extrait les vertices d'un groupe en une nouvelle BufferGeometry ── */
-function extractGroup(geo, grp) {
-  const newGeo  = new THREE.BufferGeometry();
-  const indices = geo.index
-    ? Array.from(geo.index.array).slice(grp.start, grp.start + grp.count)
-    : Array.from({ length: grp.count }, (_, i) => grp.start + i);
-
-  /* Remap les indices pour la nouvelle géo (0-based) */
-  const unique  = [...new Set(indices)];
-  const remap   = {};
-  unique.forEach((oldIdx, newIdx) => { remap[oldIdx] = newIdx; });
-  const newIdx  = indices.map(i => remap[i]);
-
-  /* Copie chaque attribut (position, normal, uv…) */
-  for (const [name, attr] of Object.entries(geo.attributes)) {
-    const size    = attr.itemSize;
-    const arr     = attr.array;
-    const newArr  = new Float32Array(unique.length * size);
-    unique.forEach((oldIdx, newI) => {
-      for (let k = 0; k < size; k++) {
-        newArr[newI * size + k] = arr[oldIdx * size + k];
-      }
-    });
-    newGeo.setAttribute(name, new THREE.BufferAttribute(newArr, size));
-  }
-
-  newGeo.setIndex(newIdx);
-  newGeo.computeBoundingBox();
-  newGeo.computeBoundingSphere();
-  return newGeo;
-}
-
-/* ── Explose tous les meshes multi-groupes du modèle ── */
 function buildParts(root) {
-  meshList = [];
-  const partsEl = document.getElementById('viewerParts');
+  partList = []; meshList = []; selectedPartIdx = -1;
 
-  /* Snapshot avant modification */
-  const origMeshes = [];
-  root.traverse(c => { if (c.isMesh) origMeshes.push(c); });
+  root.traverse(child => {
+    if (!child.isMesh) return;
+    child.castShadow = child.receiveShadow = true;
 
-  origMeshes.forEach(orig => {
-    const geo  = orig.geometry;
-    const mats = Array.isArray(orig.material) ? orig.material : [orig.material];
-    const grps = geo.groups && geo.groups.length > 0 ? geo.groups : null;
-
-    if (!grps || grps.length === 1) {
-      /* Un seul groupe : sanitize direct */
-      orig.material = makeMat(mats[0]);
-      orig.castShadow = orig.receiveShadow = true;
-      meshList.push({ mesh: orig, name: orig.name || 'Corps' });
-      return;
+    if (Array.isArray(child.material) && child.material.length > 1) {
+      /* Plusieurs slots : clone chacun indépendamment */
+      child.material = child.material.map(m => makeMat(m));
+      child.material.forEach((_, mi) => {
+        const raw = child.name || '';
+        partList.push({
+          mesh: child, matIdx: mi,
+          label: (raw.replace(/\.\d{3}$/, '').replace(/_/g, ' ').trim()
+                  || 'Partie') + ' ' + (mi + 1)
+        });
+      });
+    } else {
+      /* Matériau unique */
+      const src = Array.isArray(child.material) ? child.material[0] : child.material;
+      child.material = makeMat(src);
+      partList.push({
+        mesh: child, matIdx: -1,
+        label: child.name
+          ? child.name.replace(/\.\d{3}$/, '').replace(/_/g, ' ').trim()
+          : 'Partie ' + (partList.length + 1)
+      });
     }
-
-    /* Plusieurs groupes : on crée un sous-mesh par groupe */
-    grps.forEach((grp, gi) => {
-      if (grp.count === 0) return;
-      try {
-        const subGeo  = extractGroup(geo, grp);
-        const srcMat  = mats[grp.materialIndex] || mats[0];
-        const subMat  = makeMat(srcMat);
-        const sub     = new THREE.Mesh(subGeo, subMat);
-        sub.name      = orig.name
-          ? orig.name.replace(/\.\d+$/, '') + ' ' + (gi + 1)
-          : 'Partie ' + (gi + 1);
-        sub.castShadow = sub.receiveShadow = true;
-        /* Hérite des transformations du parent */
-        sub.applyMatrix4(orig.matrixWorld);
-        orig.parent.add(sub);
-        meshList.push({ mesh: sub, name: sub.name });
-      } catch(e) {
-        console.warn('extractGroup error', e);
-      }
-    });
-
-    /* Retire le mesh original */
-    orig.parent.remove(orig);
+    meshList.push({ mesh: child });
   });
 
-  /* Boutons */
-  if (!partsEl) return;
-  partsEl.innerHTML =
-    '<button class="vpart on" onclick="selectPart(-1,this)">Tout</button>';
-
-  if (meshList.length > 1) {
-    meshList.forEach(({ name }, i) => {
-      const clean = name.replace(/_/g, ' ').replace(/\s+\d+$/, '') || ('Partie ' + (i + 1));
-      const btn   = document.createElement('button');
-      btn.className   = 'vpart';
-      btn.textContent = clean;
-      btn.onclick     = () => selectPart(i, btn);
-      partsEl.appendChild(btn);
+  const el = document.getElementById('viewerParts');
+  if (!el) return;
+  el.innerHTML = '<button class="vpart on" onclick="selectPart(-1,this)">Tout</button>';
+  if (partList.length > 1) {
+    partList.forEach(({ label }, i) => {
+      const b = document.createElement('button');
+      b.className = 'vpart';
+      b.textContent = label || ('P' + (i + 1));
+      b.onclick = () => selectPart(i, b);
+      el.appendChild(b);
     });
   }
 }
