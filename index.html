@@ -931,6 +931,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/environments/RoomEnvironment.js"></script>
 
 <script>
 /* ═══════════════════════════════════════════════════
@@ -1667,13 +1668,14 @@ function changeColor(hex, btn) {
 }
 
 function makeMat(src) {
-  /* Clone le matériau d'origine SANS rien supprimer
-     → garde le rendu SolidWorks (normalMap, roughnessMap, etc.)
-     On clone juste pour briser le partage entre meshes */
-  if (!src) return new THREE.MeshStandardMaterial({ color: 0x888888 });
+  if (!src) return new THREE.MeshStandardMaterial({ color: 0x888888, metalness: 0.8, roughness: 0.15 });
   const m = src.clone();
   m.flatShading  = false;
   m.vertexColors = false;
+  /* Effet brillant — couleurs vives et reflets prononcés */
+  m.metalness    = 0.75;
+  m.roughness    = 0.12;
+  m.envMapIntensity = 1.5;
   m.needsUpdate  = true;
   return m;
 }
@@ -1753,13 +1755,31 @@ function initViewer(productId) {
   container.appendChild(renderer.domElement);
 
   /* ── Lights ── */
-  scene.add(new THREE.AmbientLight(0xffffff, 0.5));
-  const key = new THREE.DirectionalLight(0xffffff, 1.8);
+  scene.add(new THREE.AmbientLight(0xffffff, 0.6));
+  const key = new THREE.DirectionalLight(0xffffff, 2.2);
   key.position.set(3, 6, 5); key.castShadow = true; scene.add(key);
-  const rim = new THREE.DirectionalLight(0xC8A951, 0.8);
+  const rim = new THREE.DirectionalLight(0xffd580, 1.2);
   rim.position.set(-4, 2, -3); scene.add(rim);
-  const fill = new THREE.DirectionalLight(0x88aaff, 0.3);
+  const fill = new THREE.DirectionalLight(0xaaccff, 0.5);
   fill.position.set(0, -4, 4); scene.add(fill);
+  const top = new THREE.DirectionalLight(0xffffff, 0.8);
+  top.position.set(0, 10, 0); scene.add(top);
+
+  /* ── EnvMap neutre pour les reflets (PMREMGenerator) ── */
+  try {
+    const pmrem = new THREE.PMREMGenerator(renderer);
+    pmrem.compileEquirectangularShader();
+    const envScene = new THREE.RoomEnvironment
+      ? new THREE.RoomEnvironment()
+      : null;
+    if (envScene) {
+      const envTex = pmrem.fromScene(envScene, 0.04).texture;
+      scene.environment = envTex;
+      pmrem.dispose();
+    }
+  } catch(e) {
+    /* Fallback sans envmap si RoomEnvironment indisponible */
+  }
 
   /* ── Controls ── */
   const controls = new THREE.OrbitControls(camera, renderer.domElement);
