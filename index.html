@@ -1640,9 +1640,9 @@ function destroyViewer() {
 }
 
 /* ═══════════════════════════════════════════════════
-   THREE.JS VIEWER — COLOR SYSTEM V3
-   Principe : chaque groupe de faces devient un mesh
-   indépendant avec UN seul matériau → couleur 100% propre
+   THREE.JS VIEWER — COLOR SYSTEM V4
+   Seule vraie solution : reconstruire une BufferGeometry
+   complète par groupe de faces (copie réelle des vertices)
 ═══════════════════════════════════════════════════ */
 let selectedPartIdx = -1;
 let meshList = [];
@@ -1651,7 +1651,6 @@ function selectPart(idx, btn) {
   selectedPartIdx = idx;
   document.querySelectorAll('.vpart').forEach(b => b.classList.remove('on'));
   if (btn) btn.classList.add('on');
-  /* Halo doré sur la partie active */
   meshList.forEach(({ mesh }, i) => {
     mesh.material.emissive.setHex(i === idx ? 0x332800 : 0x000000);
   });
@@ -1663,91 +1662,115 @@ function changeColor(hex, btn) {
   if (!activeViewer) return;
   const targets = selectedPartIdx === -1 ? meshList : [meshList[selectedPartIdx]];
   targets.forEach(({ mesh }) => {
-    if (!mesh) return;
     mesh.material.color.setHex(hex);
-    mesh.material.map         = null;
-    mesh.material.vertexColors = false;
-    mesh.material.needsUpdate  = true;
+    mesh.material.needsUpdate = true;
   });
 }
 
-/* Explose un mesh multi-matériaux en sous-meshes individuels */
-function explodeMesh(mesh, parent) {
-  const geo  = mesh.geometry;
-  const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+/* ── Crée un matériau propre (sans map ni vertexColors) ── */
+function makeMat(src) {
+  return new THREE.MeshStandardMaterial({
+    color:        src && src.color ? src.color.clone() : new THREE.Color(0x888888),
+    metalness:    src && src.metalness != null ? src.metalness : 0.5,
+    roughness:    src && src.roughness != null ? src.roughness : 0.4,
+    emissive:     new THREE.Color(0x000000),
+    side:         THREE.DoubleSide,
+    map:          null, normalMap: null, aoMap: null,
+    metalnessMap: null, roughnessMap: null,
+    vertexColors: false,
+  });
+}
 
-  if (!geo.groups || geo.groups.length <= 1) {
-    /* Déjà un seul matériau → sanitize direct */
-    mesh.material = sanitizeMat(mats[0] || mats);
-    return [mesh];
+/* ── Extrait les vertices d'un groupe en une nouvelle BufferGeometry ── */
+function extractGroup(geo, grp) {
+  const newGeo  = new THREE.BufferGeometry();
+  const indices = geo.index
+    ? Array.from(geo.index.array).slice(grp.start, grp.start + grp.count)
+    : Array.from({ length: grp.count }, (_, i) => grp.start + i);
+
+  /* Remap les indices pour la nouvelle géo (0-based) */
+  const unique  = [...new Set(indices)];
+  const remap   = {};
+  unique.forEach((oldIdx, newIdx) => { remap[oldIdx] = newIdx; });
+  const newIdx  = indices.map(i => remap[i]);
+
+  /* Copie chaque attribut (position, normal, uv…) */
+  for (const [name, attr] of Object.entries(geo.attributes)) {
+    const size    = attr.itemSize;
+    const arr     = attr.array;
+    const newArr  = new Float32Array(unique.length * size);
+    unique.forEach((oldIdx, newI) => {
+      for (let k = 0; k < size; k++) {
+        newArr[newI * size + k] = arr[oldIdx * size + k];
+      }
+    });
+    newGeo.setAttribute(name, new THREE.BufferAttribute(newArr, size));
   }
 
-  const results = [];
-  geo.groups.forEach((grp, gi) => {
-    if (grp.count === 0) return;
-
-    /* Sous-géométrie avec seulement les faces de ce groupe */
-    const subGeo = geo.clone();
-    subGeo.setDrawRange(grp.start, grp.count);
-    /* Recréer les groups pour éviter les artifacts */
-    subGeo.groups = [{ start: grp.start, count: grp.count, materialIndex: 0 }];
-
-    const srcMat = mats[grp.materialIndex] || mats[0];
-    const subMat = sanitizeMat(srcMat);
-
-    const subMesh = new THREE.Mesh(subGeo, subMat);
-    subMesh.name            = mesh.name ? mesh.name + '_' + gi : 'Partie ' + (gi + 1);
-    subMesh.position.copy(mesh.position);
-    subMesh.rotation.copy(mesh.rotation);
-    subMesh.scale.copy(mesh.scale);
-    subMesh.castShadow    = true;
-    subMesh.receiveShadow = true;
-    parent.add(subMesh);
-    results.push(subMesh);
-  });
-
-  /* Supprime le mesh original remplacé */
-  if (results.length > 0) parent.remove(mesh);
-  return results;
+  newGeo.setIndex(newIdx);
+  newGeo.computeBoundingBox();
+  newGeo.computeBoundingSphere();
+  return newGeo;
 }
 
-function sanitizeMat(src) {
-  return new THREE.MeshStandardMaterial({
-    color:         src && src.color ? src.color.clone() : new THREE.Color(0x1a1a1a),
-    metalness:     src && src.metalness != null ? src.metalness : 0.55,
-    roughness:     src && src.roughness != null ? src.roughness : 0.40,
-    emissive:      new THREE.Color(0x000000),
-    side:          THREE.DoubleSide,
-    map:           null,
-    normalMap:     null,
-    vertexColors:  false,
-  });
-}
-
+/* ── Explose tous les meshes multi-groupes du modèle ── */
 function buildParts(root) {
   meshList = [];
   const partsEl = document.getElementById('viewerParts');
 
-  /* Collecte tous les meshes originaux (snapshot avant explosion) */
+  /* Snapshot avant modification */
   const origMeshes = [];
   root.traverse(c => { if (c.isMesh) origMeshes.push(c); });
 
-  origMeshes.forEach(mesh => {
-    const subs = explodeMesh(mesh, mesh.parent || root);
-    subs.forEach(sub => meshList.push({ mesh: sub }));
+  origMeshes.forEach(orig => {
+    const geo  = orig.geometry;
+    const mats = Array.isArray(orig.material) ? orig.material : [orig.material];
+    const grps = geo.groups && geo.groups.length > 0 ? geo.groups : null;
+
+    if (!grps || grps.length === 1) {
+      /* Un seul groupe : sanitize direct */
+      orig.material = makeMat(mats[0]);
+      orig.castShadow = orig.receiveShadow = true;
+      meshList.push({ mesh: orig, name: orig.name || 'Corps' });
+      return;
+    }
+
+    /* Plusieurs groupes : on crée un sous-mesh par groupe */
+    grps.forEach((grp, gi) => {
+      if (grp.count === 0) return;
+      try {
+        const subGeo  = extractGroup(geo, grp);
+        const srcMat  = mats[grp.materialIndex] || mats[0];
+        const subMat  = makeMat(srcMat);
+        const sub     = new THREE.Mesh(subGeo, subMat);
+        sub.name      = orig.name
+          ? orig.name.replace(/\.\d+$/, '') + ' ' + (gi + 1)
+          : 'Partie ' + (gi + 1);
+        sub.castShadow = sub.receiveShadow = true;
+        /* Hérite des transformations du parent */
+        sub.applyMatrix4(orig.matrixWorld);
+        orig.parent.add(sub);
+        meshList.push({ mesh: sub, name: sub.name });
+      } catch(e) {
+        console.warn('extractGroup error', e);
+      }
+    });
+
+    /* Retire le mesh original */
+    orig.parent.remove(orig);
   });
 
+  /* Boutons */
   if (!partsEl) return;
-  /* Garde uniquement le bouton "Tout" puis ajoute les parties */
-  partsEl.innerHTML = '<button class="vpart on" data-idx="-1" onclick="selectPart(-1,this)">Tout</button>';
+  partsEl.innerHTML =
+    '<button class="vpart on" onclick="selectPart(-1,this)">Tout</button>';
 
   if (meshList.length > 1) {
-    meshList.forEach((item, i) => {
-      const raw   = item.mesh.name || ('Partie ' + (i + 1));
-      const label = raw.replace(/_\d+$/, '').replace(/_/g, ' ').trim() || ('P' + (i + 1));
+    meshList.forEach(({ name }, i) => {
+      const clean = name.replace(/_/g, ' ').replace(/\s+\d+$/, '') || ('Partie ' + (i + 1));
       const btn   = document.createElement('button');
       btn.className   = 'vpart';
-      btn.textContent = label;
+      btn.textContent = clean;
       btn.onclick     = () => selectPart(i, btn);
       partsEl.appendChild(btn);
     });
@@ -1826,52 +1849,6 @@ function initViewer(productId) {
   }
 
   /* ── Construire les boutons de parties ── */
-  function buildPartButtons(object) {
-    const partsEl = document.getElementById('viewerParts');
-    if (!partsEl) return;
-
-    meshList = [];
-
-    /* ── Clone tous les matériaux pour briser le partage ── */
-    object.traverse(child => {
-      if (!child.isMesh) return;
-
-      if (Array.isArray(child.material)) {
-        child.material = child.material.map(m => cloneSanitize(m));
-      } else {
-        child.material = cloneSanitize(child.material);
-      }
-
-      meshList.push({ mesh: child });
-    });
-
-    if (meshList.length <= 1) return;
-
-    meshList.forEach((item, i) => {
-      const raw   = item.mesh.name || ('Partie ' + (i + 1));
-      /* Nettoie les noms techniques type "Mesh.001_Material.002" */
-      const label = raw.replace(/[_.]?\d{3}$/g, '').replace(/_/g, ' ') || ('Partie ' + (i + 1));
-      const btn   = document.createElement('button');
-      btn.className   = 'vpart';
-      btn.dataset.idx = i;
-      btn.textContent = label;
-      btn.onclick     = () => selectPart(i, btn);
-      partsEl.appendChild(btn);
-    });
-  }
-
-  /* Crée un MeshStandardMaterial propre depuis un matériau source */
-  function cloneSanitize(src) {
-    return new THREE.MeshStandardMaterial({
-      color:      src.color     ? src.color.clone() : new THREE.Color(0x1a1a1a),
-      metalness:  src.metalness !== undefined ? src.metalness : 0.6,
-      roughness:  src.roughness !== undefined ? src.roughness : 0.35,
-      emissive:   new THREE.Color(0x000000),
-      side:       src.side      !== undefined ? src.side      : THREE.FrontSide,
-      /* Pas de map / normalMap / vertexColors → couleur pure */
-    });
-  }
-
   /* ── Loader GLB ── */
   let model = null;
   const loader = new THREE.GLTFLoader();
@@ -1882,18 +1859,16 @@ function initViewer(productId) {
     (gltf) => {
       model = gltf.scene;
       fitCamera(model);
-      buildPartButtons(model);
       scene.add(model);
+      buildParts(model);
       if (msgEl) msgEl.remove();
     },
     (xhr) => {
       if (msgEl && xhr.total) {
-        const pct = Math.round(xhr.loaded / xhr.total * 100);
-        msgEl.textContent = pct + '%';
+        msgEl.textContent = Math.round(xhr.loaded / xhr.total * 100) + '%';
       }
     },
-    (err) => {
-      console.warn('GLB non trouvé, placeholder affiché');
+    () => {
       buildFallback();
       if (msgEl) msgEl.remove();
     }
