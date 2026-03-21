@@ -1653,10 +1653,6 @@ function selectPart(idx, btn) {
   selectedPartIdx = idx;
   document.querySelectorAll('.vpart').forEach(b => b.classList.remove('on'));
   if (btn) btn.classList.add('on');
-  partList.forEach(({ mesh, matIdx }, i) => {
-    const m = matIdx === -1 ? mesh.material : mesh.material[matIdx];
-    if (m && m.emissive) m.emissive.setHex(i === idx ? 0x332800 : 0x000000);
-  });
 }
 
 function changeColor(hex, btn) {
@@ -1677,6 +1673,7 @@ function makeMat(src) {
     roughness:    src ? (src.roughness ?? 0.4) : 0.4,
     emissive:     new THREE.Color(0x000000),
     side:         THREE.DoubleSide,
+    flatShading:  false,
     map: null, normalMap: null, aoMap: null,
     metalnessMap: null, roughnessMap: null,
     emissiveMap: null, vertexColors: false,
@@ -1690,8 +1687,15 @@ function buildParts(root) {
     if (!child.isMesh) return;
     child.castShadow = child.receiveShadow = true;
 
+    /* Smooth shading : recalcule les normales par vertex */
+    if (child.geometry) {
+      child.geometry = child.geometry.toNonIndexed
+        ? child.geometry          /* garde l'indexation */
+        : child.geometry;
+      child.geometry.computeVertexNormals();
+    }
+
     if (Array.isArray(child.material) && child.material.length > 1) {
-      /* Plusieurs slots : clone chacun indépendamment */
       child.material = child.material.map(m => makeMat(m));
       child.material.forEach((_, mi) => {
         const raw = child.name || '';
@@ -1702,7 +1706,6 @@ function buildParts(root) {
         });
       });
     } else {
-      /* Matériau unique */
       const src = Array.isArray(child.material) ? child.material[0] : child.material;
       child.material = makeMat(src);
       partList.push({
