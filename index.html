@@ -1667,17 +1667,15 @@ function changeColor(hex, btn) {
 }
 
 function makeMat(src) {
-  return new THREE.MeshStandardMaterial({
-    color:        src && src.color ? src.color.clone() : new THREE.Color(0x888888),
-    metalness:    src ? (src.metalness ?? 0.5) : 0.5,
-    roughness:    src ? (src.roughness ?? 0.4) : 0.4,
-    emissive:     new THREE.Color(0x000000),
-    side:         THREE.DoubleSide,
-    flatShading:  false,
-    map: null, normalMap: null, aoMap: null,
-    metalnessMap: null, roughnessMap: null,
-    emissiveMap: null, vertexColors: false,
-  });
+  /* Clone le matériau d'origine SANS rien supprimer
+     → garde le rendu SolidWorks (normalMap, roughnessMap, etc.)
+     On clone juste pour briser le partage entre meshes */
+  if (!src) return new THREE.MeshStandardMaterial({ color: 0x888888 });
+  const m = src.clone();
+  m.flatShading  = false;
+  m.vertexColors = false;
+  m.needsUpdate  = true;
+  return m;
 }
 
 function buildParts(root) {
@@ -1687,13 +1685,7 @@ function buildParts(root) {
     if (!child.isMesh) return;
     child.castShadow = child.receiveShadow = true;
 
-    /* Smooth shading : recalcule les normales par vertex */
-    if (child.geometry) {
-      child.geometry = child.geometry.toNonIndexed
-        ? child.geometry          /* garde l'indexation */
-        : child.geometry;
-      child.geometry.computeVertexNormals();
-    }
+    /* NE PAS recalculer les normales — on garde celles du GLB */
 
     if (Array.isArray(child.material) && child.material.length > 1) {
       child.material = child.material.map(m => makeMat(m));
