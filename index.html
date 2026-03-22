@@ -1826,25 +1826,27 @@ function initViewer(productId) {
   const loader = new THREE.GLTFLoader();
   const msgEl  = document.getElementById('viewerMsg');
 
-  loader.load(
-    BASE_PATH + 'models/' + productId + '.glb',
-    (gltf) => {
-      model = gltf.scene;
-      fitCamera(model);
-      scene.add(model);
-      buildParts(model);
-      if (msgEl) msgEl.remove();
-    },
-    (xhr) => {
-      if (msgEl && xhr.total) {
-        msgEl.textContent = Math.round(xhr.loaded / xhr.total * 100) + '%';
+loader.load(
+  BASE_PATH + 'models/' + productId + '.glb',
+  (gltf) => {
+    model = gltf.scene;
+
+    // 🔥 AJOUTE ÇA JUSTE ICI
+    model.traverse((child) => {
+      if (child.isMesh) {
+        child.material.wireframe = false;      // enlève triangles
+        child.material.flatShading = false;    // enlève effet facettes
+        child.material.needsUpdate = true;
+
+        child.geometry.computeVertexNormals(); // surface lisse
       }
-    },
-    () => {
-      buildFallback();
-      if (msgEl) msgEl.remove();
-    }
-  );
+    });
+
+    fitCamera(model);
+    scene.add(model);
+    buildParts(model);
+    if (msgEl) msgEl.remove();
+  },
 
   /* Fallback si pas de GLB */
   function buildFallback() {
