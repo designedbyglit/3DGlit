@@ -1,7 +1,23 @@
 [build]
   functions = "netlify/functions"
+  command   = "cd netlify/functions && npm install"
+
+[functions]
+  node_bundler = "esbuild"
 
 [[redirects]]
   from = "/*"
   to   = "/index.html"
   status = 200
+```
+
+4. Cliquez **"Commit changes"** → **"Commit directly to main"** → **Commit**
+
+---
+
+**Étape 3 — Créez le fichier `package.json` dans functions**
+
+1. Dans votre repo, cliquez **"Add file" → "Create new file"**
+2. Dans le nom du fichier tapez exactement :
+```
+netlify/functions/package.json
