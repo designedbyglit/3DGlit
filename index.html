@@ -936,6 +936,7 @@
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/environments/RoomEnvironment.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/utils/BufferGeometryUtils.js"></script>
 
 <script>
 /* ═══════════════════════════════════════════════════
@@ -1696,7 +1697,12 @@ function buildParts(root) {
     if (!child.isMesh) return;
     child.castShadow = child.receiveShadow = true;
 
-    /* Recalcul des normales → smooth shading, plus de triangles visibles */
+    /* Fusion des vertices dupliqués + recalcul normales → smooth shading parfait */
+    try {
+      if (THREE.BufferGeometryUtils && THREE.BufferGeometryUtils.mergeVertices) {
+        child.geometry = THREE.BufferGeometryUtils.mergeVertices(child.geometry, 0.0001);
+      }
+    } catch(e) {}
     child.geometry.computeVertexNormals();
 
     if (Array.isArray(child.material) && child.material.length > 1) {
