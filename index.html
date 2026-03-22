@@ -1668,7 +1668,6 @@ function changeColor(hex, btn) {
 }
 
 function makeMat(src) {
-function makeMat(src) {
   if (!src) return new THREE.MeshStandardMaterial({ color: 0x888888, metalness: 0.0, roughness: 0.55 });
   const m          = src.clone();
   m.flatShading    = false;   /* ← élimine les triangles */
