@@ -472,7 +472,7 @@
     }
     .v-color:hover  { transform: scale(1.18); }
     .v-color.on     { border-color: var(--gold); }
-    .v-color[data-c="black"]  { background: #080808; }
+    .v-color[data-c="black"]  { background: #000000; }
     .v-color[data-c="red"]    { background: #cc0000; }
     .v-color[data-c="blue"]   { background: #0033cc; }
     .v-color[data-c="white"]  { background: #f0f0f0; border: 1px solid #333; }
@@ -1846,8 +1846,8 @@ function initViewer(productId) {
   /* Fallback si pas de GLB */
   function buildFallback() {
     const g   = new THREE.Group();
-    const mat = new THREE.MeshStandardMaterial({ color: 0x1a1a1a, metalness: .8, roughness: .2 });
-    const gld = new THREE.MeshStandardMaterial({ color: 0xC8A951, metalness: .95, roughness: .08 });
+    const mat = new THREE.MeshStandardMaterial({ color: 0x111111, metalness: 1, roughness: 0.15 });
+    const gld = new THREE.MeshStandardMaterial({ color: 0xFFD700, metalness: 1, roughness: 0.05 });
 
     const body  = new THREE.Mesh(new THREE.CylinderGeometry(.85, .85, .28, 48), mat);
     body.rotation.x = Math.PI / 2; g.add(body);
