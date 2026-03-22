@@ -472,7 +472,7 @@
     }
     .v-color:hover  { transform: scale(1.18); }
     .v-color.on     { border-color: var(--gold); }
-    .v-color[data-c="black"]  { background: #000000; }
+    .v-color[data-c="black"]  { background: #080808; }
     .v-color[data-c="red"]    { background: #cc0000; }
     .v-color[data-c="blue"]   { background: #0033cc; }
     .v-color[data-c="white"]  { background: #f0f0f0; border: 1px solid #333; }
@@ -1668,17 +1668,17 @@ function changeColor(hex, btn) {
 }
 
 function makeMat(src) {
+function makeMat(src) {
   if (!src) return new THREE.MeshStandardMaterial({ color: 0x888888, metalness: 0.0, roughness: 0.55 });
-  const m = src.clone();
-  m.flatShading     = false;
-  m.vertexColors    = false;
-  m.metalness       = 0.0;
-  m.roughness       = 0.55;
-  m.envMapIntensity = 1.0;
-  m.map             = null;
-  m.roughnessMap    = null;
-  m.normalMap       = null;
-  m.needsUpdate     = true;
+  const m          = src.clone();
+  m.flatShading    = false;   /* ← élimine les triangles */
+  m.vertexColors   = false;
+  m.metalness      = 0.0;
+  m.roughness      = 0.55;
+  m.map            = null;
+  m.roughnessMap   = null;
+  m.normalMap      = null;
+  m.needsUpdate    = true;
   return m;
 }
 
@@ -1689,7 +1689,8 @@ function buildParts(root) {
     if (!child.isMesh) return;
     child.castShadow = child.receiveShadow = true;
 
-    /* NE PAS recalculer les normales — on garde celles du GLB */
+    /* Recalcul des normales → smooth shading, plus de triangles visibles */
+    child.geometry.computeVertexNormals();
 
     if (Array.isArray(child.material) && child.material.length > 1) {
       child.material = child.material.map(m => makeMat(m));
@@ -1749,14 +1750,12 @@ function initViewer(productId) {
 
   /* ── Renderer ── */
   const renderer = new THREE.WebGLRenderer({ antialias: true });
-  renderer.outputEncoding = THREE.sRGBEncoding;
-  renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1.2;
   renderer.setSize(W, H);
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
   renderer.shadowMap.enabled = true;
-  try { renderer.outputEncoding = THREE.sRGBEncoding; } catch(e){}
-  try { renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.2; } catch(e){}
+  /* Pas de tone mapping ni d'encoding sRGB → couleurs 100% fidèles aux hex */
+  renderer.toneMapping         = THREE.NoToneMapping;
+  renderer.toneMappingExposure = 1.0;
   container.appendChild(renderer.domElement);
 
   /* ── Lights ── */
@@ -1826,33 +1825,31 @@ function initViewer(productId) {
   const loader = new THREE.GLTFLoader();
   const msgEl  = document.getElementById('viewerMsg');
 
-loader.load(
-  BASE_PATH + 'models/' + productId + '.glb',
-  (gltf) => {
-    model = gltf.scene;
-
-    // 🔥 AJOUTE ÇA JUSTE ICI
-    model.traverse((child) => {
-      if (child.isMesh) {
-        child.material.wireframe = false;      // enlève triangles
-        child.material.flatShading = false;    // enlève effet facettes
-        child.material.needsUpdate = true;
-
-        child.geometry.computeVertexNormals(); // surface lisse
+  loader.load(
+    BASE_PATH + 'models/' + productId + '.glb',
+    (gltf) => {
+      model = gltf.scene;
+      fitCamera(model);
+      scene.add(model);
+      buildParts(model);
+      if (msgEl) msgEl.remove();
+    },
+    (xhr) => {
+      if (msgEl && xhr.total) {
+        msgEl.textContent = Math.round(xhr.loaded / xhr.total * 100) + '%';
       }
-    });
-
-    fitCamera(model);
-    scene.add(model);
-    buildParts(model);
-    if (msgEl) msgEl.remove();
-  },
+    },
+    () => {
+      buildFallback();
+      if (msgEl) msgEl.remove();
+    }
+  );
 
   /* Fallback si pas de GLB */
   function buildFallback() {
     const g   = new THREE.Group();
-    const mat = new THREE.MeshStandardMaterial({ color: 0x111111, metalness: 1, roughness: 0.15 });
-    const gld = new THREE.MeshStandardMaterial({ color: 0xFFD700, metalness: 1, roughness: 0.05 });
+    const mat = new THREE.MeshStandardMaterial({ color: 0x1a1a1a, metalness: .8, roughness: .2 });
+    const gld = new THREE.MeshStandardMaterial({ color: 0xC8A951, metalness: .95, roughness: .08 });
 
     const body  = new THREE.Mesh(new THREE.CylinderGeometry(.85, .85, .28, 48), mat);
     body.rotation.x = Math.PI / 2; g.add(body);
