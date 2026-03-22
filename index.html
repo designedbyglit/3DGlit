@@ -1029,6 +1029,7 @@ const PRODUCTS = [
     name: 'Semi Perso',
     cat: 'Personnalisation',
     price: '???',
+    stripeLink: 'https://buy.stripe.com/LIEN_SEMI_PERSO',
     has3D: true,
     desc: 'Kit de personnalisation semi-complet pour votre moto. Comprend cache allumage, cache pignon et bouchons de cadre. Réalisé en impression 3D haute résistance, disponible dans les coloris de votre choix.',
     specs: [
@@ -1043,6 +1044,7 @@ const PRODUCTS = [
     name: 'Full Perso',
     cat: 'Personnalisation',
     price: '???',
+    stripeLink: 'https://buy.stripe.com/LIEN_FULL_PERSO',
     has3D: true,
     desc: 'Pack personnalisation complète. Tous les éléments habillés aux couleurs de votre moto. Chaque pièce est conçue sur mesure selon votre modèle et vos désirs. Rendu premium garanti.',
     specs: [
@@ -1057,6 +1059,7 @@ const PRODUCTS = [
     name: 'Cache allumage',
     cat: 'Protection moteur',
     price: 30,
+    stripeLink: 'https://buy.stripe.com/LIEN_CACHE_ALLUMAGE',
     has3D: true,
     desc: 'Cache d\'allumage imprimé en 3D en PLA+ haute résistance. Protection optimale contre les projections, design épuré qui met en valeur votre bloc moteur.',
     specs: [
@@ -1071,6 +1074,7 @@ const PRODUCTS = [
     name: 'Cache pignon',
     cat: 'Protection moteur',
     price: 15,
+    stripeLink: 'https://buy.stripe.com/LIEN_CACHE_PIGNON',
     has3D: true,
     desc: 'Cache pignon en impression 3D, s\'adapte à votre transmission sans modification. Protège votre pignon de sortie de boîte des projections de route et des chocs.',
     specs: [
@@ -1085,6 +1089,7 @@ const PRODUCTS = [
     name: 'Support durite',
     cat: 'Accastillage',
     price: 8,
+    stripeLink: 'https://buy.stripe.com/LIEN_SUPPORT_DURITE',
     has3D: false,
     desc: 'Support de durite imprimé en 3D pour maintenir vos flexibles de frein ou de refroidissement dans une position précise et sécurisée. Allège et ordonne le faisceau.',
     specs: [
@@ -1099,6 +1104,7 @@ const PRODUCTS = [
     name: 'Récupérateur de fluides',
     cat: 'Circuit fluides',
     price: 16,
+    stripeLink: 'https://buy.stripe.com/LIEN_RECUPERATEUR',
     has3D: true,
     desc: 'Récupérateur de fluides conçu pour capturer les fuites d\'huile moteur et de liquide de refroidissement. Indispensable pour la piste et le circuit, conforme aux normes des paddocks.',
     specs: [
@@ -1113,6 +1119,7 @@ const PRODUCTS = [
     name: 'Cache obturateur',
     cat: 'Esthétique',
     price: 12,
+    stripeLink: 'https://buy.stripe.com/LIEN_CACHE_OBTURATEUR',
     has3D: true,
     desc: 'Cache obturateur réalisé en impression 3D pour boucher proprement les orifices non utilisés sur le cadre ou le moteur. Finition soignée, rendu esthétique professionnel.',
     specs: [
@@ -1127,6 +1134,7 @@ const PRODUCTS = [
     name: 'Butée biellette',
     cat: 'Suspension',
     price: 8,
+    stripeLink: 'https://buy.stripe.com/LIEN_BUTEE_BIELLETTE',
     has3D: true,
     desc: 'Butée de biellette de suspension arrière imprimée en 3D. Limite le débattement de la suspension selon vos besoins, utile pour usage piste ou charge lourde.',
     specs: [
@@ -1141,6 +1149,7 @@ const PRODUCTS = [
     name: 'Pipe performance',
     cat: 'Moteur',
     price: 20,
+    stripeLink: 'https://buy.stripe.com/LIEN_PIPE_PERFORMANCE',
     has3D: false,
     desc: 'Pipe d\'admission performance pour boîtier papillon et carburateur. Géométrie optimisée en 3D pour améliorer le flux d\'air et les performances moteur.',
     specs: [
@@ -1155,6 +1164,7 @@ const PRODUCTS = [
     name: 'Bouchon de cadre',
     cat: 'Esthétique',
     price: 10,
+    stripeLink: 'https://buy.stripe.com/LIEN_BOUCHON_CADRE',
     has3D: true,
     desc: 'Bouchon de cadre imprimé en 3D pour obstruer les tubes de cadre et passages de câble. Finition propre, aspect premium. Vendu à l\'unité ou par lot.',
     specs: [
@@ -1858,12 +1868,8 @@ async function submitCommande(e) {
   btn.textContent = 'Envoi en cours…';
   btn.disabled = true;
 
-  /* ── Lien Stripe Payment Link ──
-     Remplacez cette valeur par votre vrai lien Stripe
-     Créez-le sur : dashboard.stripe.com → Payment Links → Créer
-     Conseil : créez un produit "Commande Designed by Glit" avec un prix libre (custom amount)
-  */
-  const STRIPE_LINK = 'https://buy.stripe.com/test_bJedR25OT4Srd307JU1RC01';
+  /* ── Votre lien Stripe Payment Link (montant libre) ── */
+  const STRIPE_LINK = 'https://buy.stripe.com/test_7sY4gsfpt2Kj9QOc0a1RC02';
 
   const data = new FormData(form);
 
@@ -1875,7 +1881,7 @@ async function submitCommande(e) {
     });
 
     if (res.ok) {
-      /* Affiche page de transition avant redirection Stripe */
+      cart = []; saveCart(); updateCartUI();
       document.getElementById('page').innerHTML = `
         <div style="padding:120px 80px;text-align:center;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:24px;">
           <div style="font-family:var(--font-h);font-size:.7rem;font-weight:600;letter-spacing:.35em;text-transform:uppercase;color:var(--gold)">Commande enregistrée</div>
@@ -1885,28 +1891,25 @@ async function submitCommande(e) {
             Vous allez être redirigé vers notre page de paiement sécurisée Stripe.
           </p>
           <div style="display:flex;flex-direction:column;align-items:center;gap:10px;">
-            <div style="font-family:var(--font-h);font-size:2rem;font-weight:700;color:var(--gold)">${cartTotal()} €</div>
+            <div style="font-family:var(--font-h);font-size:2.4rem;font-weight:700;color:var(--gold)">${cartTotal ? cartTotal() : ''} €</div>
             <div style="font-family:var(--font-ui);font-size:.62rem;letter-spacing:.2em;text-transform:uppercase;color:var(--text3)">Total à régler</div>
           </div>
-          <button class="btn btn-gold" style="padding:16px 48px;font-size:.8rem;" onclick="window.location.href='${STRIPE_LINK}'">
+          <a href="${STRIPE_LINK}" class="btn btn-gold" style="padding:16px 48px;font-size:.8rem;text-decoration:none">
             Payer maintenant →
-          </button>
+          </a>
           <p style="font-family:var(--font-ui);font-size:.6rem;letter-spacing:.12em;color:var(--text3);">
             🔒 Paiement 100% sécurisé par Stripe · Visa, Mastercard, CB acceptés
           </p>
           <button onclick="navigate('/')" style="background:none;border:none;font-family:var(--font-ui);font-size:.62rem;letter-spacing:.18em;text-transform:uppercase;color:var(--text3);cursor:pointer;">
-            Annuler et retourner à l'accueil
+            Retour à l'accueil
           </button>
         </div>`;
-      /* Vide le panier */
-      cart = []; saveCart(); updateCartUI();
-      /* Redirection auto après 4 secondes */
-      setTimeout(() => { window.location.href = STRIPE_LINK; }, 4000);
+      setTimeout(() => { window.location.href = STRIPE_LINK; }, 5000);
     } else {
-      throw new Error('Erreur serveur');
+      throw new Error('Erreur');
     }
   } catch(err) {
-    btn.textContent = 'Confirmer et payer →';
+    btn.textContent = 'Valider et payer →';
     btn.disabled = false;
     showToast('Erreur d\'envoi — réessayez ou contactez-nous');
   }
