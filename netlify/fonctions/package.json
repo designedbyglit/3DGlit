@@ -1,7 +1,5 @@
 {
-  "name": "designed-by-glit",
-  "version": "1.0.0",
-  "description": "Designed by Glit – Pièces moto imprimées en 3D",
+  "name": "functions",
   "dependencies": {
     "stripe": "^14.0.0"
   }
