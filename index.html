@@ -940,6 +940,9 @@
       <span class="nav-a" onclick="navigate('/contact')" data-route="/contact">Contact</span>
     </nav>
     <div style="display:flex;align-items:center;gap:16px;">
+      <button class="cart-trigger" id="authBtn" onclick="navigate('/compte')">
+        <span id="authBtnTxt">Connexion</span>
+      </button>
       <button class="cart-trigger" onclick="openCart()">
         Panier
         <span class="cart-badge" id="cartBadge">0</span>
@@ -1004,7 +1007,58 @@
   </footer>
 </div>
 
-<!-- THREE.JS -->
+<!-- FIREBASE -->
+<script type="module">
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, updateProfile }
+  from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
+import { getFirestore, doc, setDoc, getDoc, updateDoc, collection, addDoc, getDocs, query, orderBy }
+  from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+
+const firebaseConfig = {
+  apiKey:            "AIzaSyCH4D16h4GBnOapp2VniVOIMXaXiROZ-Zo",
+  authDomain:        "designed-by-glit-7d798.firebaseapp.com",
+  projectId:         "designed-by-glit-7d798",
+  storageBucket:     "designed-by-glit-7d798.firebasestorage.app",
+  messagingSenderId: "708979321547",
+  appId:             "1:708979321547:web:7b549c74e2d0cd3731894e"
+};
+
+const app  = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db   = getFirestore(app);
+
+/* ── Expose globalement pour le reste du code ── */
+window._auth = auth;
+window._db   = db;
+window._fbMod = { createUserWithEmailAndPassword, signInWithEmailAndPassword,
+  signOut, onAuthStateChanged, updateProfile,
+  doc, setDoc, getDoc, updateDoc, collection, addDoc, getDocs, query, orderBy };
+
+/* ── Écoute l'état de connexion ── */
+onAuthStateChanged(auth, async (user) => {
+  window._currentUser = user || null;
+  updateAuthUI(user);
+
+  if (user) {
+    /* Charge le panier depuis Firestore */
+    const snap = await getDoc(doc(db, 'users', user.uid));
+    if (snap.exists() && snap.data().cart) {
+      cart = snap.data().cart;
+      saveCart();
+      updateCartUI();
+    }
+  }
+});
+
+/* ── Sauvegarde panier dans Firestore si connecté ── */
+window.saveCartToFirestore = async () => {
+  const user = window._currentUser;
+  if (!user) return;
+  const { doc, setDoc } = window._fbMod;
+  await setDoc(doc(window._db, 'users', user.uid), { cart }, { merge: true });
+};
+</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
@@ -1181,7 +1235,200 @@ const PRODUCTS = [
 ═══════════════════════════════════════════════════ */
 let cart = JSON.parse(localStorage.getItem('dbg_cart') || '[]');
 
-function saveCart() { localStorage.setItem('dbg_cart', JSON.stringify(cart)); }
+/* ═══════════════════════════════════════════════════
+   AUTH UI
+═══════════════════════════════════════════════════ */
+function updateAuthUI(user) {
+  const btn = document.getElementById('authBtnTxt');
+  if (!btn) return;
+  btn.textContent = user ? (user.displayName || 'Mon compte') : 'Connexion';
+  document.getElementById('authBtn').onclick = () => navigate(user ? '/compte' : '/connexion');
+}
+
+/* ═══════════════════════════════════════════════════
+   SAVE CART — sync Firestore si connecté
+═══════════════════════════════════════════════════ */
+function saveCart() {
+  localStorage.setItem('dbg_cart', JSON.stringify(cart));
+  if (window.saveCartToFirestore) window.saveCartToFirestore();
+}
+
+/* ═══════════════════════════════════════════════════
+   PAGE: CONNEXION / INSCRIPTION
+═══════════════════════════════════════════════════ */
+function renderConnexion() {
+  return `
+  <div style="padding-top:68px;min-height:100vh;display:flex;align-items:center;justify-content:center;">
+    <div style="width:100%;max-width:440px;padding:40px 24px;">
+      <div class="ph-label" style="margin-bottom:10px">Accès membre</div>
+      <h1 style="font-family:var(--font-h);font-size:2.5rem;font-weight:700;color:var(--text);margin-bottom:32px">MON COMPTE</h1>
+
+      <!-- Onglets -->
+      <div style="display:flex;gap:0;margin-bottom:28px;border-bottom:1px solid var(--border);">
+        <button id="tabLogin" onclick="switchTab('login')"
+          style="font-family:var(--font-ui);font-size:.68rem;font-weight:600;letter-spacing:.2em;text-transform:uppercase;
+                 background:none;border:none;color:var(--gold);padding:10px 20px 10px 0;cursor:pointer;
+                 border-bottom:2px solid var(--gold);margin-bottom:-1px;">
+          Connexion
+        </button>
+        <button id="tabRegister" onclick="switchTab('register')"
+          style="font-family:var(--font-ui);font-size:.68rem;font-weight:600;letter-spacing:.2em;text-transform:uppercase;
+                 background:none;border:none;color:var(--text3);padding:10px 20px;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;">
+          Inscription
+        </button>
+      </div>
+
+      <!-- Formulaire Connexion -->
+      <div id="formLogin">
+        <div class="form-group">
+          <label class="form-label">Email</label>
+          <input class="form-input" id="loginEmail" type="email" placeholder="votre@email.com">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Mot de passe</label>
+          <input class="form-input" id="loginPassword" type="password" placeholder="••••••••">
+        </div>
+        <div id="loginError" style="color:#d42e2e;font-family:var(--font-ui);font-size:.65rem;letter-spacing:.1em;margin-bottom:14px;display:none;"></div>
+        <button class="btn btn-gold" style="width:100%;justify-content:center;" onclick="doLogin()">
+          Se connecter →
+        </button>
+      </div>
+
+      <!-- Formulaire Inscription -->
+      <div id="formRegister" style="display:none;">
+        <div class="form-group">
+          <label class="form-label">Prénom & Nom</label>
+          <input class="form-input" id="regName" type="text" placeholder="Prénom Nom">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Email</label>
+          <input class="form-input" id="regEmail" type="email" placeholder="votre@email.com">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Mot de passe</label>
+          <input class="form-input" id="regPassword" type="password" placeholder="Minimum 6 caractères">
+        </div>
+        <div id="regError" style="color:#d42e2e;font-family:var(--font-ui);font-size:.65rem;letter-spacing:.1em;margin-bottom:14px;display:none;"></div>
+        <button class="btn btn-gold" style="width:100%;justify-content:center;" onclick="doRegister()">
+          Créer mon compte →
+        </button>
+      </div>
+    </div>
+  </div>`;
+}
+
+function switchTab(tab) {
+  const isLogin = tab === 'login';
+  document.getElementById('formLogin').style.display    = isLogin ? '' : 'none';
+  document.getElementById('formRegister').style.display = isLogin ? 'none' : '';
+  document.getElementById('tabLogin').style.color       = isLogin ? 'var(--gold)' : 'var(--text3)';
+  document.getElementById('tabLogin').style.borderBottomColor    = isLogin ? 'var(--gold)' : 'transparent';
+  document.getElementById('tabRegister').style.color    = isLogin ? 'var(--text3)' : 'var(--gold)';
+  document.getElementById('tabRegister').style.borderBottomColor = isLogin ? 'transparent' : 'var(--gold)';
+}
+
+async function doLogin() {
+  const email = document.getElementById('loginEmail').value;
+  const pass  = document.getElementById('loginPassword').value;
+  const err   = document.getElementById('loginError');
+  err.style.display = 'none';
+  try {
+    await window._fbMod.signInWithEmailAndPassword(window._auth, email, pass);
+    showToast('Connecté !');
+    navigate('/compte');
+  } catch(e) {
+    err.textContent = 'Email ou mot de passe incorrect';
+    err.style.display = 'block';
+  }
+}
+
+async function doRegister() {
+  const name  = document.getElementById('regName').value;
+  const email = document.getElementById('regEmail').value;
+  const pass  = document.getElementById('regPassword').value;
+  const err   = document.getElementById('regError');
+  err.style.display = 'none';
+  try {
+    const cred = await window._fbMod.createUserWithEmailAndPassword(window._auth, email, pass);
+    await window._fbMod.updateProfile(cred.user, { displayName: name });
+    /* Crée le document utilisateur dans Firestore */
+    await window._fbMod.setDoc(
+      window._fbMod.doc(window._db, 'users', cred.user.uid),
+      { name, email, cart: [], createdAt: new Date().toISOString() }
+    );
+    showToast('Compte créé !');
+    navigate('/compte');
+  } catch(e) {
+    err.textContent = e.code === 'auth/email-already-in-use'
+      ? 'Cet email est déjà utilisé'
+      : 'Erreur : ' + e.message;
+    err.style.display = 'block';
+  }
+}
+
+/* ═══════════════════════════════════════════════════
+   PAGE: MON COMPTE
+═══════════════════════════════════════════════════ */
+async function renderCompte() {
+  const user = window._currentUser;
+  if (!user) { navigate('/connexion'); return ''; }
+
+  /* Charge les commandes depuis Firestore */
+  let ordersHtml = '<p style="color:var(--text3);font-size:.85rem;">Aucune commande pour le moment.</p>';
+  try {
+    const { collection, getDocs, query, orderBy, doc, getDoc } = window._fbMod;
+    const q    = query(collection(window._db, 'users', user.uid, 'orders'), orderBy('date', 'desc'));
+    const snap = await getDocs(q);
+    if (!snap.empty) {
+      ordersHtml = snap.docs.map(d => {
+        const o = d.data();
+        return `
+        <div style="padding:18px 0;border-bottom:1px solid var(--border);">
+          <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:8px;">
+            <span style="font-family:var(--font-h);font-size:1rem;font-weight:600;color:var(--text)">${o.date ? new Date(o.date).toLocaleDateString('fr-FR') : 'Date inconnue'}</span>
+            <span style="font-family:var(--font-h);font-size:1rem;color:var(--gold)">${o.total || '—'}</span>
+          </div>
+          <div style="font-family:var(--font-ui);font-size:.65rem;letter-spacing:.1em;color:var(--text3)">${o.resume || ''}</div>
+        </div>`;
+      }).join('');
+    }
+  } catch(e) {}
+
+  return `
+  <div style="padding-top:68px;min-height:100vh;">
+    <div class="page-hero">
+      <div class="ph-label">Espace membre</div>
+      <h1 class="ph-title">MON COMPTE</h1>
+      <p class="ph-sub">${user.displayName || user.email}</p>
+    </div>
+    <div style="padding:56px 80px;display:grid;grid-template-columns:1fr 1fr;gap:56px;align-items:start;">
+
+      <!-- Infos -->
+      <div>
+        <div class="cmd-block-title">Mes informations</div>
+        <div class="pd-spec"><span class="pd-spec-k">Nom</span><span class="pd-spec-v">${user.displayName || '—'}</span></div>
+        <div class="pd-spec"><span class="pd-spec-k">Email</span><span class="pd-spec-v">${user.email}</span></div>
+        <div style="margin-top:28px;display:flex;gap:12px;flex-wrap:wrap;">
+          <button class="btn btn-gold" onclick="navigate('/pieces')">Voir les pièces →</button>
+          <button class="btn btn-outline" onclick="doLogout()">Se déconnecter</button>
+        </div>
+      </div>
+
+      <!-- Commandes -->
+      <div>
+        <div class="cmd-block-title">Mes commandes</div>
+        ${ordersHtml}
+      </div>
+
+    </div>
+  </div>`;
+}
+
+async function doLogout() {
+  await window._fbMod.signOut(window._auth);
+  showToast('Déconnecté');
+  navigate('/');
+}
 
 function getSelectedColors() {
   /* Récupère les couleurs actuellement appliquées sur chaque partie */
@@ -1331,6 +1578,8 @@ function renderPage(path) {
       page.innerHTML = renderDetail(id); footer.style.display = '';
       setTimeout(() => initViewer(id), 80);
     }
+    else if (path === '/connexion') { page.innerHTML = renderConnexion(); footer.style.display = ''; }
+    else if (path === '/compte')   { renderCompte().then(h => { page.innerHTML = h; initReveal(); }); footer.style.display = ''; return; }
     else if (path === '/personnalisation') { page.innerHTML = renderPerso(); footer.style.display = ''; }
     else if (path === '/contact') { page.innerHTML = renderContact(); footer.style.display = ''; }
     else if (path === '/panier') { page.innerHTML = renderPanierPage(); footer.style.display = ''; }
@@ -1476,7 +1725,7 @@ function renderDetail(id) {
           <button class="v-color"    data-c="red"    title="Rouge"      onclick="changeColor(0xcc0000, this)"></button>
           <button class="v-color"    data-c="blue"   title="Bleu"       onclick="changeColor(0x0033cc, this)"></button>
           <button class="v-color"    data-c="white"  title="Blanc"      onclick="changeColor(0xf0f0f0, this)"></button>
-          <button class="v-color"    data-c="orange" title="Orange"     onclick="changeColor(0x3F1F00, this)"></button>
+          <button class="v-color"    data-c="orange" title="Orange"     onclick="changeColor(0x974C00, this)"></button>
           <button class="v-color"    data-c="green"  title="Vert"       onclick="changeColor(0x006600, this)"></button>
           <button class="v-color"    data-c="violet" title="Violet"     onclick="changeColor(0x370057, this)"></button>
           <button class="v-color"    data-c="rose"   title="Rose"       onclick="changeColor(0x870075, this)"></button>
@@ -1868,50 +2117,77 @@ async function submitCommande(e) {
   btn.textContent = 'Envoi en cours…';
   btn.disabled = true;
 
-  /* ── Votre lien Stripe Payment Link (montant libre) ── */
-  const STRIPE_LINK = 'https://buy.stripe.com/test_7sY4gsfpt2Kj9QOc0a1RC02';
+  /* Prépare les données du formulaire */
+  const formData = new FormData(form);
+  const customer = {
+    prenom:    formData.get('prenom'),
+    nom:       formData.get('nom'),
+    email:     formData.get('email'),
+    telephone: formData.get('telephone') || '',
+    adresse:   formData.get('adresse'),
+    cp:        formData.get('cp'),
+    ville:     formData.get('ville'),
+    pays:      formData.get('pays'),
+    message:   formData.get('message') || '',
+  };
 
-  const data = new FormData(form);
+  /* Prépare les articles du panier avec couleurs */
+  const items = cart.map(ci => {
+    const p = PRODUCTS.find(x => x.id === ci.id);
+    if (!p) return null;
+    return {
+      id:     p.id,
+      name:   p.name,
+      price:  p.price === '???' ? 0 : p.price,
+      qty:    ci.qty || 1,
+      colors: ci.colors || [],
+    };
+  }).filter(Boolean);
 
   try {
-    const res = await fetch('https://formspree.io/f/xeergeee', {
+    /* 1 — Envoi commande à Formspree */
+    const lignes = items.map(i =>
+      `${i.name} ×${i.qty} — ${i.price > 0 ? i.price * i.qty + ' €' : 'Sur devis'}` +
+      (i.colors.length ? ' — ' + i.colors.map(c => `${c.label}:${c.hex}`).join(', ') : '')
+    ).join(' | ');
+    await fetch('https://formspree.io/f/xeergeee', {
       method: 'POST',
-      body: data,
-      headers: { 'Accept': 'application/json' }
+      body: JSON.stringify({ ...customer, commande: lignes, total: cartTotal() + ' €' }),
+      headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' }
     });
 
-    if (res.ok) {
-      cart = []; saveCart(); updateCartUI();
-      document.getElementById('page').innerHTML = `
-        <div style="padding:120px 80px;text-align:center;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:24px;">
-          <div style="font-family:var(--font-h);font-size:.7rem;font-weight:600;letter-spacing:.35em;text-transform:uppercase;color:var(--gold)">Commande enregistrée</div>
-          <h1 style="font-family:var(--font-h);font-size:3rem;font-weight:700;color:var(--text)">PAIEMENT SÉCURISÉ</h1>
-          <p style="color:var(--text2);max-width:420px;line-height:1.8;font-size:.9rem;">
-            Votre commande a bien été enregistrée.<br>
-            Vous allez être redirigé vers notre page de paiement sécurisée Stripe.
-          </p>
-          <div style="display:flex;flex-direction:column;align-items:center;gap:10px;">
-            <div style="font-family:var(--font-h);font-size:2.4rem;font-weight:700;color:var(--gold)">${cartTotal ? cartTotal() : ''} €</div>
-            <div style="font-family:var(--font-ui);font-size:.62rem;letter-spacing:.2em;text-transform:uppercase;color:var(--text3)">Total à régler</div>
-          </div>
-          <a href="${STRIPE_LINK}" class="btn btn-gold" style="padding:16px 48px;font-size:.8rem;text-decoration:none">
-            Payer maintenant →
-          </a>
-          <p style="font-family:var(--font-ui);font-size:.6rem;letter-spacing:.12em;color:var(--text3);">
-            🔒 Paiement 100% sécurisé par Stripe · Visa, Mastercard, CB acceptés
-          </p>
-          <button onclick="navigate('/')" style="background:none;border:none;font-family:var(--font-ui);font-size:.62rem;letter-spacing:.18em;text-transform:uppercase;color:var(--text3);cursor:pointer;">
-            Retour à l'accueil
-          </button>
-        </div>`;
-      setTimeout(() => { window.location.href = STRIPE_LINK; }, 5000);
-    } else {
-      throw new Error('Erreur');
+    /* 1b — Sauvegarde commande dans Firestore si connecté */
+    const user = window._currentUser;
+    if (user && window._fbMod) {
+      const { collection, addDoc } = window._fbMod;
+      await addDoc(collection(window._db, 'users', user.uid, 'orders'), {
+        date:   new Date().toISOString(),
+        total:  cartTotal() + ' €',
+        resume: lignes,
+        items:  items,
+        adresse: `${customer.adresse}, ${customer.cp} ${customer.ville}`,
+      });
     }
+
+    /* 2 — Crée session Stripe Checkout via Netlify Function */
+    const res = await fetch('/.netlify/functions/create-checkout', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ items, customer })
+    });
+
+    if (!res.ok) throw new Error('Erreur Netlify Function');
+    const { url } = await res.json();
+
+    /* 3 — Vide panier et redirige vers Stripe */
+    cart = []; saveCart(); updateCartUI();
+    window.location.href = url;
+
   } catch(err) {
+    console.error(err);
     btn.textContent = 'Valider et payer →';
     btn.disabled = false;
-    showToast('Erreur d\'envoi — réessayez ou contactez-nous');
+    showToast('Erreur — réessayez ou contactez-nous');
   }
 }
 
