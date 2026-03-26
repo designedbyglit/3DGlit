@@ -1,6 +1,6 @@
 [build]
   functions = "netlify/functions"
-  command   = "if [ -d netlify/functions ]; then cd netlify/functions && npm install; fi"
+  command   = "cd netlify/functions && npm install"
 
 [functions]
   node_bundler = "esbuild"
@@ -9,12 +9,3 @@
   from = "/*"
   to   = "/index.html"
   status = 200
-```
-
-**3 —** Commit
-
----
-
-**4 —** Ensuite créez le fichier manquant — sur GitHub → **Add file → Create new file** → tapez :
-```
-netlify/functions/create-checkout.js
