@@ -1,6 +1,5 @@
 [build]
-  functions = "netlify/functions"
-  command   = "cd netlify/functions && npm install"
+  functions = "fonctions"
 
 [functions]
   node_bundler = "esbuild"
